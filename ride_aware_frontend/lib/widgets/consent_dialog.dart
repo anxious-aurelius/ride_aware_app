@@ -17,6 +17,7 @@ class ConsentDialog extends StatelessWidget {
     'For questions, users may contact Kripal Parsekar (kripal.parsekar.2024@uni.strath.ac.uk, +44 7823704105).',
   ];
 
+
   const ConsentDialog({super.key, required this.consentService});
 
   @override
