@@ -40,6 +40,12 @@ def get_commute_status(
         "max_humidity": float(thresholds.weather_limits.max_humidity),
         "min_temperature": float(thresholds.weather_limits.min_temperature),
         "max_temperature": float(thresholds.weather_limits.max_temperature),
+        "headwind_sensitivity": float(
+            thresholds.weather_limits.headwind_sensitivity
+        ),
+        "crosswind_sensitivity": float(
+            thresholds.weather_limits.crosswind_sensitivity
+        ),
     }
 
     # evaluate thresholds

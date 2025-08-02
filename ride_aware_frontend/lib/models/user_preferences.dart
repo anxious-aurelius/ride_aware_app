@@ -98,6 +98,8 @@ class WeatherLimits {
   final double maxHumidity;
   final double minTemperature;
   final double maxTemperature;
+  final double headwindSensitivity;
+  final double crosswindSensitivity;
 
   const WeatherLimits({
     required this.maxWindSpeed,
@@ -105,6 +107,8 @@ class WeatherLimits {
     required this.maxHumidity,
     required this.minTemperature,
     required this.maxTemperature,
+    required this.headwindSensitivity,
+    required this.crosswindSensitivity,
   });
 
   factory WeatherLimits.defaultValues() {
@@ -114,6 +118,8 @@ class WeatherLimits {
       maxHumidity: 85.0,
       minTemperature: 5.0, // 5°C minimum - cyclists don't like cold weather
       maxTemperature: 32.0,
+      headwindSensitivity: 20.0,
+      crosswindSensitivity: 15.0,
     );
   }
 
@@ -124,6 +130,10 @@ class WeatherLimits {
       maxHumidity: (json['max_humidity'] ?? 85.0).toDouble(),
       minTemperature: (json['min_temperature'] ?? 5.0).toDouble(),
       maxTemperature: (json['max_temperature'] ?? 32.0).toDouble(),
+      headwindSensitivity:
+          (json['headwind_sensitivity'] ?? 20.0).toDouble(),
+      crosswindSensitivity:
+          (json['crosswind_sensitivity'] ?? 15.0).toDouble(),
     );
   }
 
@@ -134,6 +144,8 @@ class WeatherLimits {
       'max_humidity': maxHumidity,
       'min_temperature': minTemperature,
       'max_temperature': maxTemperature,
+      'headwind_sensitivity': headwindSensitivity,
+      'crosswind_sensitivity': crosswindSensitivity,
     };
   }
 
@@ -143,6 +155,8 @@ class WeatherLimits {
     double? maxHumidity,
     double? minTemperature,
     double? maxTemperature,
+    double? headwindSensitivity,
+    double? crosswindSensitivity,
   }) {
     return WeatherLimits(
       maxWindSpeed: maxWindSpeed ?? this.maxWindSpeed,
@@ -150,6 +164,10 @@ class WeatherLimits {
       maxHumidity: maxHumidity ?? this.maxHumidity,
       minTemperature: minTemperature ?? this.minTemperature,
       maxTemperature: maxTemperature ?? this.maxTemperature,
+      headwindSensitivity:
+          headwindSensitivity ?? this.headwindSensitivity,
+      crosswindSensitivity:
+          crosswindSensitivity ?? this.crosswindSensitivity,
     );
   }
 
@@ -164,6 +182,10 @@ class WeatherLimits {
         minTemperature <= 60 &&
         maxTemperature >= -50 &&
         maxTemperature <= 60 &&
+        headwindSensitivity >= 0 &&
+        headwindSensitivity <= 50 &&
+        crosswindSensitivity >= 0 &&
+        crosswindSensitivity <= 50 &&
         minTemperature <=
             maxTemperature; // Min temp must be less than or equal to max temp
   }
@@ -176,7 +198,9 @@ class WeatherLimits {
         other.maxRainIntensity == maxRainIntensity &&
         other.maxHumidity == maxHumidity &&
         other.minTemperature == minTemperature &&
-        other.maxTemperature == maxTemperature;
+        other.maxTemperature == maxTemperature &&
+        other.headwindSensitivity == headwindSensitivity &&
+        other.crosswindSensitivity == crosswindSensitivity;
   }
 
   @override
@@ -185,12 +209,14 @@ class WeatherLimits {
         maxRainIntensity.hashCode ^
         maxHumidity.hashCode ^
         minTemperature.hashCode ^
-        maxTemperature.hashCode;
+        maxTemperature.hashCode ^
+        headwindSensitivity.hashCode ^
+        crosswindSensitivity.hashCode;
   }
 
   @override
   String toString() {
-    return 'WeatherLimits(maxWindSpeed: $maxWindSpeed, maxRainIntensity: $maxRainIntensity, maxHumidity: $maxHumidity, minTemperature: $minTemperature, maxTemperature: $maxTemperature)';
+    return 'WeatherLimits(maxWindSpeed: $maxWindSpeed, maxRainIntensity: $maxRainIntensity, maxHumidity: $maxHumidity, minTemperature: $minTemperature, maxTemperature: $maxTemperature, headwindSensitivity: $headwindSensitivity, crosswindSensitivity: $crosswindSensitivity)';
   }
 }
 

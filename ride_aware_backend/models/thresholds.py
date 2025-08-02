@@ -9,6 +9,8 @@ class WeatherLimits(BaseModel):
     max_humidity: condecimal(gt=0, le=100)
     min_temperature: condecimal(gt=-50, le=60)
     max_temperature: condecimal(gt=-50, le=60)
+    headwind_sensitivity: condecimal(ge=0, le=50) = Field(default=20)
+    crosswind_sensitivity: condecimal(ge=0, le=50) = Field(default=15)
 
 class EnvironmentalRisk(BaseModel):
     min_visibility: condecimal(gt=0, le=20000)

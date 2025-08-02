@@ -41,6 +41,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   final _pollutionController = TextEditingController();
   final _uvIndexController = TextEditingController();
 
+  double _headwindSensitivity = 20.0;
+  double _crosswindSensitivity = 15.0;
+
   // Route specific controllers
   final _homeLatController = TextEditingController();
   final _homeLonController = TextEditingController();
@@ -110,6 +113,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         .toString();
     _maxTemperatureController.text = preferences.weatherLimits.maxTemperature
         .toString();
+    _headwindSensitivity =
+        preferences.weatherLimits.headwindSensitivity;
+    _crosswindSensitivity =
+        preferences.weatherLimits.crosswindSensitivity;
     _visibilityController.text = preferences.environmentalRisk.minVisibility
         .toString();
     _pollutionController.text = preferences.environmentalRisk.maxPollution
@@ -168,6 +175,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         maxHumidity: double.parse(_humidityController.text),
         minTemperature: double.parse(_minTemperatureController.text),
         maxTemperature: double.parse(_maxTemperatureController.text),
+        headwindSensitivity: _headwindSensitivity,
+        crosswindSensitivity: _crosswindSensitivity,
       ),
       environmentalRisk: EnvironmentalRisk(
         minVisibility: double.parse(_visibilityController.text),
@@ -609,6 +618,52 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               helperText: '0 – 200 km/h',
               min: 0,
               max: 200,
+            ),
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Headwind Sensitivity (${_headwindSensitivity.round()} km/h)',
+                ),
+                Slider(
+                  value: _headwindSensitivity,
+                  min: 0,
+                  max: 50,
+                  divisions: 50,
+                  label: '${_headwindSensitivity.round()} km/h',
+                  onChanged: (value) {
+                    setState(() => _headwindSensitivity = value);
+                  },
+                ),
+                Text(
+                  'Receive an alert when headwind exceeds this speed during your commute.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Crosswind Sensitivity (${_crosswindSensitivity.round()} km/h)',
+                ),
+                Slider(
+                  value: _crosswindSensitivity,
+                  min: 0,
+                  max: 50,
+                  divisions: 50,
+                  label: '${_crosswindSensitivity.round()} km/h',
+                  onChanged: (value) {
+                    setState(() => _crosswindSensitivity = value);
+                  },
+                ),
+                Text(
+                  'Receive an alert when crosswind exceeds this speed during your commute.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             _buildNumberField(
