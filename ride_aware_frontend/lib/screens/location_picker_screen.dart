@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-class OfficeLocationPickerScreen extends StatefulWidget {
+class LocationPickerScreen extends StatefulWidget {
   final LatLng? initialLocation;
+  final String title;
 
-  const OfficeLocationPickerScreen({super.key, this.initialLocation});
+  const LocationPickerScreen({
+    super.key,
+    this.initialLocation,
+    required this.title,
+  });
 
   @override
-  State<OfficeLocationPickerScreen> createState() =>
-      _OfficeLocationPickerScreenState();
+  State<LocationPickerScreen> createState() => _LocationPickerScreenState();
 }
 
-class _OfficeLocationPickerScreenState
-    extends State<OfficeLocationPickerScreen> {
+class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final MapController _mapController = MapController();
   LatLng _selectedLocation = const LatLng(51.5, -0.09); // Default to London
 
@@ -30,7 +33,7 @@ class _OfficeLocationPickerScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Office Location'),
+        title: Text(widget.title),
         centerTitle: true,
         actions: [
           TextButton(
