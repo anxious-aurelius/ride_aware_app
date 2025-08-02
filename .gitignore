@@ -1,0 +1,70 @@
+
+# =======================
+# General
+# =======================
+*.class
+*.log
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.tmp
+.DS_Store
+.env
+!.env.example
+*.sqlite3
+
+# =======================
+# IntelliJ & VS Code
+# =======================
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# =======================
+# Flutter/Dart/Mobile Related (ride_aware_frontend)
+# =======================
+ride_aware_frontend/doc/api/
+ride_aware_frontend/ios/Flutter/.last_build_id
+ride_aware_frontend/.dart_tool/
+ride_aware_frontend/.flutter-plugins
+ride_aware_frontend/.flutter-plugins-dependencies
+ride_aware_frontend/.pub-cache/
+ride_aware_frontend/.pub/
+ride_aware_frontend/build/
+
+# Android-specific
+ride_aware_frontend/android/app/debug
+ride_aware_frontend/android/app/profile
+ride_aware_frontend/android/app/release
+
+# Obfuscation & Symbolication
+ride_aware_frontend/app.*.symbols
+ride_aware_frontend/app.*.map.json
+
+# Misc Flutter tools
+ride_aware_frontend/.atom/
+ride_aware_frontend/.build/
+ride_aware_frontend/.buildlog/
+ride_aware_frontend/.history
+ride_aware_frontend/.svn/
+ride_aware_frontend/.swiftpm/
+ride_aware_frontend/migrate_working_dir/
+
+# =======================
+# FastAPI (Python Backend - ride_aware_backend)
+# =======================
+ride_aware_backend/__pycache__/
+ride_aware_backend/.pytest_cache/
+ride_aware_backend/.env
+ride_aware_backend/env/
+ride_aware_backend/venv/
+ride_aware_backend/.mypy_cache/
+ride_aware_backend/.DS_Store
+
+# macOS/Linux System Files
+ehthumbs.db
+Icon?
+Thumbs.db
