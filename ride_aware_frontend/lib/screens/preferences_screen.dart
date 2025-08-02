@@ -14,7 +14,7 @@ import '../services/device_id_service.dart';
 import '../services/routing_service.dart';
 import 'dashboard_screen.dart';
 import 'map_preview_screen.dart';
-import 'office_location_picker_screen.dart' show OfficeLocationPickerScreen;
+import 'location_picker_screen.dart';
 import '../app_initializer.dart'; // For resetting to initial state
 
 class PreferencesScreen extends StatefulWidget {
@@ -267,30 +267,39 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     }
   }
 
-  Future<void> _pickOfficeLocation() async {
+  Future<void> _pickLocation({
+    required TextEditingController latController,
+    required TextEditingController lonController,
+    required String title,
+  }) async {
     LatLng? initialLocation;
-    if (_officeLatController.text.isNotEmpty &&
-        _officeLonController.text.isNotEmpty) {
+    if (latController.text.isNotEmpty && lonController.text.isNotEmpty) {
       initialLocation = LatLng(
-        double.parse(_officeLatController.text),
-        double.parse(_officeLonController.text),
+        double.parse(latController.text),
+        double.parse(lonController.text),
       );
     }
 
     final LatLng? pickedLocation = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            OfficeLocationPickerScreen(initialLocation: initialLocation),
+        builder: (context) => LocationPickerScreen(
+          initialLocation: initialLocation,
+          title: title,
+        ),
       ),
     );
 
     if (pickedLocation != null) {
       setState(() {
-        _officeLatController.text = pickedLocation.latitude.toStringAsFixed(6);
-        _officeLonController.text = pickedLocation.longitude.toStringAsFixed(6);
+        latController.text = pickedLocation.latitude.toStringAsFixed(6);
+        lonController.text = pickedLocation.longitude.toStringAsFixed(6);
       });
-      _showErrorSnackBar('Office location selected.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$title selected.')),
+        );
+      }
     }
   }
 
@@ -826,24 +835,28 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
-            _buildNumberField(
-              controller: _homeLatController,
-              label: 'Home Latitude',
-              helperText: '-90 to 90',
-              min: -90,
-              max: 90,
-              allowDecimals: true,
+            Text(
+              _homeLatController.text.isNotEmpty &&
+                      _homeLonController.text.isNotEmpty
+                  ? 'Lat: ${_homeLatController.text}, Lon: ${_homeLonController.text}'
+                  : 'No home location selected',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 16),
-            _buildNumberField(
-              controller: _homeLonController,
-              label: 'Home Longitude',
-              helperText: '-180 to 180',
-              min: -180,
-              max: 180,
-              allowDecimals: true,
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _pickLocation(
+                  latController: _homeLatController,
+                  lonController: _homeLonController,
+                  title: 'Select Home Location',
+                ),
+                icon: const Icon(Icons.map),
+                label: const Text('Pick Home Location on Map'),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -882,7 +895,11 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: _pickOfficeLocation,
+                onPressed: () => _pickLocation(
+                  latController: _officeLatController,
+                  lonController: _officeLonController,
+                  title: 'Select Office Location',
+                ),
                 icon: const Icon(Icons.map),
                 label: const Text('Pick Office Location on Map'),
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
