@@ -5,6 +5,8 @@ import 'package:active_commuter_support/services/preferences_service.dart';
 import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:active_commuter_support/services/device_id_service.dart';
+import 'package:active_commuter_support/services/consent_service.dart';
+import 'package:active_commuter_support/widgets/consent_dialog.dart';
 
 class AppInitializer extends StatefulWidget {
   const AppInitializer({super.key});
@@ -19,6 +21,7 @@ class _AppInitializerState extends State<AppInitializer> {
   final _preferencesService = PreferencesService();
   final _deviceIdService = DeviceIdService();
   final _notificationService = NotificationService();
+  final _consentService = ConsentService();
   bool _isLoading = true;
   bool _hasParticipantId = false;
   bool _thresholdsSet = false;
@@ -27,6 +30,8 @@ class _AppInitializerState extends State<AppInitializer> {
   void initState() {
     super.initState();
     _checkAppState();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _showConsentDialogIfNeeded());
   }
 
   Future<void> _checkAppState() async {
@@ -63,6 +68,17 @@ class _AppInitializerState extends State<AppInitializer> {
       // ScaffoldMessenger.of(context).showSnackBar(
       //   SnackBar(content: Text('App initialization failed: $e')),
       // );
+    }
+  }
+
+  Future<void> _showConsentDialogIfNeeded() async {
+    final hasConsented = await _consentService.hasConsented();
+    if (!hasConsented && mounted) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => ConsentDialog(consentService: _consentService),
+      );
     }
   }
 
