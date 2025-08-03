@@ -1,10 +1,6 @@
 from services.commute_status_service import get_commute_status
-from models.thresholds import Thresholds
 
 
-def get_status(thresholds: Thresholds) -> dict:
-    """
-    Controller function: orchestrates service call and allows exceptions to bubble up
-    to the route layer for HTTP translation.
-    """
-    return get_commute_status(thresholds)
+async def get_status(device_id: str) -> dict:
+    """Controller layer for commute status retrieval."""
+    return await get_commute_status(device_id)

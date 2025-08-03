@@ -2,10 +2,6 @@ from fastapi import HTTPException
 from models.thresholds import Thresholds
 from services.db import thresholds_collection
 
-from fastapi import HTTPException
-from models.thresholds import Thresholds
-from services.db import thresholds_collection
-
 async def upsert_threshold(threshold: Thresholds) -> dict:
     data = threshold.model_dump(mode="json")
     device_id = data["device_id"]
