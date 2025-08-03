@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
 from typing import List
 
 from models.thresholds import WeatherLimits
+
+
+logger = logging.getLogger(__name__)
 
 
 def evaluate_thresholds(weather_data: dict, thresholds: WeatherLimits) -> List[str]:
@@ -57,4 +61,6 @@ def evaluate_thresholds(weather_data: dict, thresholds: WeatherLimits) -> List[s
     ):
         messages.append("Pollution exceeds your comfort limit")
 
+    logger.debug("Threshold evaluation messages: %s", messages)
     return messages
+
