@@ -1,6 +1,6 @@
 import 'package:active_commuter_support/screens/preferences_screen.dart';
 import 'package:active_commuter_support/services/notification_service.dart';
-import 'package:active_commuter_support/widgets/commute_status_panel.dart';
+import 'package:active_commuter_support/widgets/upcoming_commute_alert.dart';
 import 'package:flutter/material.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -59,14 +59,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Here\'s your commute status for today',
+                  'Plan ahead for your next ride',
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ),
             ),
 
             // Commute Status Panel
-            const CommuteStatusPanel(),
+            const UpcomingCommuteAlert(),
 
             // Notification Status Card
             Card(
