@@ -30,3 +30,10 @@ def test_get_hourly_forecast_no_data(monkeypatch):
     monkeypatch.setattr(weather_service.requests, "get", lambda url, params=None: make_response({"hourly": []}))
     with pytest.raises(ValueError):
         weather_service.get_hourly_forecast(1.0, 2.0, dt)
+
+
+def test_get_hourly_forecast_missing_api_key(monkeypatch):
+    dt = datetime(2023, 1, 1, 12, 0)
+    monkeypatch.delenv("OPENWEATHER_API_KEY", raising=False)
+    with pytest.raises(weather_service.MissingAPIKeyError):
+        weather_service.get_hourly_forecast(1.0, 2.0, dt)
