@@ -19,14 +19,23 @@ def test_get_hourly_forecast(monkeypatch):
     dt = datetime(2023, 1, 1, 12, 0)
     hourly = [{"dt": int(dt.timestamp()), "wind_speed": 5}]
     monkeypatch.setenv("OPENWEATHER_API_KEY", "key")
-    monkeypatch.setattr(weather_service.requests, "get", lambda url, params=None: make_response({"hourly": hourly}))
+    monkeypatch.delenv("OPENWEATHER_URL", raising=False)
+    captured = {}
+
+    def fake_get(url, params=None):
+        captured["url"] = url
+        return make_response({"hourly": hourly})
+
+    monkeypatch.setattr(weather_service.requests, "get", fake_get)
     res = weather_service.get_hourly_forecast(1.0, 2.0, dt)
     assert res["wind_speed"] == 5
+    assert captured["url"] == "https://api.openweathermap.org/data/2.5/onecall"
 
 
 def test_get_hourly_forecast_no_data(monkeypatch):
     dt = datetime(2023, 1, 1, 12, 0)
     monkeypatch.setenv("OPENWEATHER_API_KEY", "key")
+    monkeypatch.delenv("OPENWEATHER_URL", raising=False)
     monkeypatch.setattr(weather_service.requests, "get", lambda url, params=None: make_response({"hourly": []}))
     with pytest.raises(ValueError):
         weather_service.get_hourly_forecast(1.0, 2.0, dt)
