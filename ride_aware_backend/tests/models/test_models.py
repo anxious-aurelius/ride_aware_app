@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from models.fcm import FCMDeviceModel
 from models.route import RouteModel, GeoPoint
-from models.thresholds import Thresholds, WeatherLimits, EnvironmentalRisk, OfficeLocation
+from models.thresholds import Thresholds, WeatherLimits, OfficeLocation
 
 
 def test_fcm_device_model_valid():
@@ -47,8 +47,6 @@ def test_thresholds_model_valid():
             max_humidity=80,
             min_temperature=0,
             max_temperature=35,
-        ),
-        environmental_risk=EnvironmentalRisk(
             min_visibility=1000,
             max_pollution=100,
             max_uv_index=8,
@@ -68,8 +66,6 @@ def test_thresholds_model_invalid_device_id():
                 max_humidity=80,
                 min_temperature=0,
                 max_temperature=35,
-            ),
-            environmental_risk=EnvironmentalRisk(
                 min_visibility=1000,
                 max_pollution=100,
                 max_uv_index=8,

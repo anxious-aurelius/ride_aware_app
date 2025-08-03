@@ -11,11 +11,9 @@ class WeatherLimits(BaseModel):
     max_temperature: condecimal(gt=-50, le=60)
     headwind_sensitivity: condecimal(ge=0, le=50) = Field(default=20)
     crosswind_sensitivity: condecimal(ge=0, le=50) = Field(default=15)
-
-class EnvironmentalRisk(BaseModel):
-    min_visibility: condecimal(gt=0, le=20000)
-    max_pollution: condecimal(gt=0, le=500)
-    max_uv_index: condecimal(gt=0, le=11)
+    min_visibility: Optional[condecimal(gt=0, le=20000)] = None
+    max_pollution: Optional[condecimal(gt=0, le=500)] = None
+    max_uv_index: Optional[condecimal(gt=0, le=11)] = None
 
 class OfficeLocation(BaseModel):
     latitude: condecimal(gt=-90, le=90, decimal_places=6)
@@ -29,6 +27,5 @@ class CommuteWindows(BaseModel):
 class Thresholds(BaseModel):
     device_id: str = Field(..., min_length=6, max_length=64)
     weather_limits: WeatherLimits
-    environmental_risk: EnvironmentalRisk
     office_location: OfficeLocation
     commute_windows: Optional[CommuteWindows] = None

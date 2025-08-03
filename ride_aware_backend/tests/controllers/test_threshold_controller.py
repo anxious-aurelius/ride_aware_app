@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import AsyncMock
 
 from controllers import threshold_controller
-from models.thresholds import Thresholds, WeatherLimits, EnvironmentalRisk, OfficeLocation
+from models.thresholds import Thresholds, WeatherLimits, OfficeLocation
 
 
 def test_upsert_threshold(monkeypatch):
@@ -15,8 +15,6 @@ def test_upsert_threshold(monkeypatch):
             max_humidity=80,
             min_temperature=0,
             max_temperature=35,
-        ),
-        environmental_risk=EnvironmentalRisk(
             min_visibility=1000,
             max_pollution=100,
             max_uv_index=8,
@@ -42,8 +40,6 @@ def test_get_thresholds(monkeypatch):
             "max_temperature": 35,
             "headwind_sensitivity": 20,
             "crosswind_sensitivity": 15,
-        },
-        "environmental_risk": {
             "min_visibility": 1000,
             "max_pollution": 100,
             "max_uv_index": 8,

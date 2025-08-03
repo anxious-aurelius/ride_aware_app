@@ -1,6 +1,8 @@
 from datetime import datetime
 import pytest
 
+from services import weather_service
+
 
 def make_response(data):
     class Resp:
@@ -14,18 +16,17 @@ def make_response(data):
 
 
 def test_get_hourly_forecast(monkeypatch):
-    from services import weather_service
     dt = datetime(2023, 1, 1, 12, 0)
-    hourly = [{"dt": int(dt.timestamp()), "temp": 270}]
-    monkeypatch.setattr(weather_service.requests, "get", lambda url: make_response({"hourly": hourly}))
-    res = weather_service.get_hourly_forecast("1,2", dt, "key")
-    assert res["temp"] == 270
+    hourly = [{"dt": int(dt.timestamp()), "wind_speed": 5}]
+    monkeypatch.setenv("OPENWEATHER_API_KEY", "key")
+    monkeypatch.setattr(weather_service.requests, "get", lambda url, params=None: make_response({"hourly": hourly}))
+    res = weather_service.get_hourly_forecast(1.0, 2.0, dt)
+    assert res["wind_speed"] == 5
 
 
-def test_get_hourly_forecast_no_match(monkeypatch):
-    from services import weather_service
+def test_get_hourly_forecast_no_data(monkeypatch):
     dt = datetime(2023, 1, 1, 12, 0)
-    hourly = [{"dt": int(dt.timestamp()) + 7200, "temp": 270}]
-    monkeypatch.setattr(weather_service.requests, "get", lambda url: make_response({"hourly": hourly}))
+    monkeypatch.setenv("OPENWEATHER_API_KEY", "key")
+    monkeypatch.setattr(weather_service.requests, "get", lambda url, params=None: make_response({"hourly": []}))
     with pytest.raises(ValueError):
-        weather_service.get_hourly_forecast("1,2", dt, "key")
+        weather_service.get_hourly_forecast(1.0, 2.0, dt)

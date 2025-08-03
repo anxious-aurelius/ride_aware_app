@@ -1,16 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from controllers.commute_status_controller import get_status
-from models.thresholds import Thresholds
 
 router = APIRouter(prefix="/commute", tags=["commute"])
 
-@router.post("/status")
-def commute_status(thresholds: Thresholds):
-    """
-    Route handler: delegates to controller and converts exceptions into HTTP errors.
-    """
+
+@router.get("/status/{device_id}")
+async def commute_status(device_id: str):
+    """Return commute status for the specified device."""
     try:
-        return get_status(thresholds)
+        return await get_status(device_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception:
