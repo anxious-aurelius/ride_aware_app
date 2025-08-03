@@ -7,6 +7,10 @@ from typing import Dict
 import requests
 
 
+class MissingAPIKeyError(Exception):
+    """Raised when the OpenWeather API key is missing."""
+
+
 OPENWEATHER_URL = "https://api.openweathermap.org/data/3.0/onecall"
 
 
@@ -27,7 +31,7 @@ def get_hourly_forecast(lat: float, lon: float, target_time: datetime) -> Dict:
     """
     api_key = os.getenv("OPENWEATHER_API_KEY")
     if not api_key:
-        raise RuntimeError("OPENWEATHER_API_KEY environment variable not set")
+        raise MissingAPIKeyError("OPENWEATHER_API_KEY environment variable not set")
 
     params = {
         "lat": lat,
