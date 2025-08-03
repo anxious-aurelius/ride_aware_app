@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from controllers.commute_status_controller import get_status
 from services.weather_service import MissingAPIKeyError
@@ -13,6 +15,7 @@ async def commute_status(device_id: str):
         return await get_status(device_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
     except MissingAPIKeyError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception:
