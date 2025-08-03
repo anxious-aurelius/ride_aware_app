@@ -11,8 +11,9 @@ import requests
 class MissingAPIKeyError(Exception):
     """Raised when the OpenWeather API key is missing."""
 
-
-OPENWEATHER_URL = "https://api.openweathermap.org/data/3.0/onecall"
+OPENWEATHER_URL = os.getenv(
+    "OPENWEATHER_URL", "https://api.openweathermap.org/data/2.5/onecall"
+)
 logger = logging.getLogger(__name__)
 
 
