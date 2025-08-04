@@ -94,7 +94,6 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildStatusHeader(theme, status, result),
-            _buildCommuteInfo(theme, result),
             _buildWeatherMetrics(theme, result, limits),
             if (result.issues.isNotEmpty)
               _buildIssuesSection(result, status.color, theme),
@@ -123,101 +122,94 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         ),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: status.color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: status.color.withOpacity(0.3),
-                width: 2,
+          // Main header row
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: status.color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: status.color.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  Icons.directions_bike,
+                  size: 28,
+                  color: status.color,
+                ),
               ),
-            ),
-            child: Icon(Icons.directions_bike, size: 28, color: status.color),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
                   t('Upcoming Commute'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatDateTime(result.time),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: status.color,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: status.color.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                decoration: BoxDecoration(
+                  color: status.color,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: status.color.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(status.icon, color: Colors.white, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  t(status.label),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCommuteInfo(ThemeData theme, CommuteAlertResult result) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.2)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.route, color: theme.colorScheme.primary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Route: "${result.route.routeName}"',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(status.icon, color: Colors.white, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      t(status.label),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Date/time row
+          Row(
+            children: [
+              const SizedBox(
+                width: 56,
+              ), // Align with text above (icon width + padding)
+              Icon(
+                Icons.schedule,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _formatDateTime(result.time),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -288,7 +280,7 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     final humiditySubDesc = 'Your limit: ${humidityLimit.toStringAsFixed(0)}%';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -299,7 +291,7 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
               color: theme.colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _buildEnhancedWeatherGrid([
             _WeatherMetric(
               tempIcon,
