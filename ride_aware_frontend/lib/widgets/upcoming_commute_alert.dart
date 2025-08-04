@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../viewmodels/upcoming_commute_view_model.dart';
 import '../utils/parsing.dart';
 import '../utils/i18n.dart';
 import '../models/user_preferences.dart';
-import 'commute_summary.dart';
-import 'weather_metric_card.dart';
 
 // Helper classes defined outside the widget
 class _WeatherMetric {
@@ -43,6 +42,9 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) {
+      print('📋 UpcomingCommuteAlert initialized');
+    }
     _vm.addListener(_onUpdate);
     _vm.load();
   }
