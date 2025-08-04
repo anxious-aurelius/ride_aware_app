@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/upcoming_commute_view_model.dart';
+import '../utils/parsing.dart';
 
 class UpcomingCommuteAlert extends StatefulWidget {
   const UpcomingCommuteAlert({super.key});
@@ -61,6 +62,8 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         : result.status == 'warning'
             ? Icons.warning
             : Icons.check_circle;
+    final headwind = parseDouble(result.forecast['headwind']);
+    final crosswind = parseDouble(result.forecast['crosswind']);
     return Card(
       margin: const EdgeInsets.all(16),
       color: color.withOpacity(0.1),
@@ -91,10 +94,10 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 '${result.forecast['wind_speed']} m/s',
                 'max ${limits.maxWindSpeed} m/s'),
             _metricRow('Headwind',
-                '${(result.forecast['headwind'] as num).toStringAsFixed(1)} m/s',
+                '${headwind.toStringAsFixed(1)} m/s',
                 'max ${limits.headwindSensitivity} m/s'),
             _metricRow('Crosswind',
-                '${(result.forecast['crosswind'] as num).toStringAsFixed(1)} m/s',
+                '${crosswind.toStringAsFixed(1)} m/s',
                 'max ${limits.crosswindSensitivity} m/s'),
             _metricRow('Rain',
                 '${result.forecast['rain'] ?? 0} mm',
