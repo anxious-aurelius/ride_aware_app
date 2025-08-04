@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/parsing.dart';
 
 enum CommuteStatusLevel { safe, caution, unsafe }
 
@@ -133,10 +134,10 @@ class ForecastData {
 
   factory ForecastData.fromJson(Map<String, dynamic> json) {
     return ForecastData(
-      temperature: (json['temperature'] as num).toDouble(),
-      windSpeed: (json['wind_speed'] as num).toDouble(),
-      rain: (json['rain'] as num).toDouble(),
-      humidity: (json['humidity'] as num).toDouble(), // Parse humidity
+      temperature: parseDouble(json['temperature']),
+      windSpeed: parseDouble(json['wind_speed']),
+      rain: parseDouble(json['rain']),
+      humidity: parseDouble(json['humidity']),
       confidence: json['confidence'] as String,
     );
   }
@@ -157,12 +158,10 @@ class ThresholdData {
 
   factory ThresholdData.fromJson(Map<String, dynamic> json) {
     return ThresholdData(
-      windSpeed: (json['wind_speed'] as num).toDouble(),
-      rain: (json['rain'] as num).toDouble(),
-      temperatureMin: (json['temperature_min'] as num)
-          .toDouble(), // Parse temperature_min
-      temperatureMax: (json['temperature_max'] as num)
-          .toDouble(), // Parse temperature_max
+      windSpeed: parseDouble(json['wind_speed']),
+      rain: parseDouble(json['rain']),
+      temperatureMin: parseDouble(json['temperature_min']),
+      temperatureMax: parseDouble(json['temperature_max']),
     );
   }
 }

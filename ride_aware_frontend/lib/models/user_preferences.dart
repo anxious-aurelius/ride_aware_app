@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/parsing.dart';
 
 class UserPreferences {
   final WeatherLimits weatherLimits;
@@ -125,15 +126,17 @@ class WeatherLimits {
 
   factory WeatherLimits.fromJson(Map<String, dynamic> json) {
     return WeatherLimits(
-      maxWindSpeed: (json['max_wind_speed'] ?? 30.0).toDouble(),
-      maxRainIntensity: (json['max_rain_intensity'] ?? 0.5).toDouble(),
-      maxHumidity: (json['max_humidity'] ?? 85.0).toDouble(),
-      minTemperature: (json['min_temperature'] ?? 5.0).toDouble(),
-      maxTemperature: (json['max_temperature'] ?? 32.0).toDouble(),
+      maxWindSpeed: parseDouble(json['max_wind_speed'], defaultValue: 30.0),
+      maxRainIntensity:
+          parseDouble(json['max_rain_intensity'], defaultValue: 0.5),
+      maxHumidity: parseDouble(json['max_humidity'], defaultValue: 85.0),
+      minTemperature: parseDouble(json['min_temperature'], defaultValue: 5.0),
+      maxTemperature:
+          parseDouble(json['max_temperature'], defaultValue: 32.0),
       headwindSensitivity:
-          (json['headwind_sensitivity'] ?? 20.0).toDouble(),
+          parseDouble(json['headwind_sensitivity'], defaultValue: 20.0),
       crosswindSensitivity:
-          (json['crosswind_sensitivity'] ?? 15.0).toDouble(),
+          parseDouble(json['crosswind_sensitivity'], defaultValue: 15.0),
     );
   }
 
@@ -241,9 +244,11 @@ class EnvironmentalRisk {
 
   factory EnvironmentalRisk.fromJson(Map<String, dynamic> json) {
     return EnvironmentalRisk(
-      minVisibility: (json['min_visibility'] ?? 1000.0).toDouble(),
-      maxPollution: (json['max_pollution'] ?? 80.0).toDouble(),
-      maxUvIndex: (json['max_uv_index'] ?? 5.0).toDouble(),
+      minVisibility:
+          parseDouble(json['min_visibility'], defaultValue: 1000.0),
+      maxPollution:
+          parseDouble(json['max_pollution'], defaultValue: 80.0),
+      maxUvIndex: parseDouble(json['max_uv_index'], defaultValue: 5.0),
     );
   }
 
@@ -308,8 +313,8 @@ class OfficeLocation {
 
   factory OfficeLocation.fromJson(Map<String, dynamic> json) {
     return OfficeLocation(
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
+      latitude: parseDouble(json['latitude']),
+      longitude: parseDouble(json['longitude']),
     );
   }
 

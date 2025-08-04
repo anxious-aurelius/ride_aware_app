@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart'; // For kDebugMode
 import '../models/geo_point.dart';
+import '../utils/parsing.dart';
 
 class RoutingService {
   // IMPORTANT: Replace with your actual OpenRouteService API Key
@@ -66,8 +67,8 @@ class RoutingService {
         // OpenRouteService returns [longitude, latitude]
         final routePoints = coordinatesList.map((coord) {
           return GeoPoint(
-            latitude: coord[1].toDouble(),
-            longitude: coord[0].toDouble(),
+            latitude: parseDouble(coord[1]),
+            longitude: parseDouble(coord[0]),
           );
         }).toList();
 

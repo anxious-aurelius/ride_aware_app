@@ -1,3 +1,5 @@
+import '../utils/parsing.dart';
+
 class GeoPoint {
   final double latitude;
   final double longitude;
@@ -10,9 +12,9 @@ class GeoPoint {
   };
 
   factory GeoPoint.fromJson(Map<String, dynamic> json) => GeoPoint(
-    latitude: (json['latitude'] as num).toDouble(),
-    longitude: (json['longitude'] as num).toDouble(),
-  );
+        latitude: parseDouble(json['latitude']),
+        longitude: parseDouble(json['longitude']),
+      );
 
   @override
   bool operator ==(Object other) {

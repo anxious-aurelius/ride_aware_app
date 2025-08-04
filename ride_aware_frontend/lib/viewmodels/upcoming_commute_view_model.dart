@@ -6,6 +6,7 @@ import '../models/geo_point.dart';
 import '../services/preferences_service.dart';
 import '../services/forecast_service.dart';
 import '../services/user_route_service.dart';
+import '../utils/parsing.dart';
 
 class CommuteAlertResult {
   final DateTime time;
@@ -99,11 +100,11 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
     final List<String> issues = [];
     final List<String> borderline = [];
 
-    double wind = (forecast['wind_speed'] ?? 0).toDouble();
-    double rain = (forecast['rain'] ?? 0).toDouble();
-    double humidity = (forecast['humidity'] ?? 0).toDouble();
-    double temp = (forecast['temp'] ?? 0).toDouble();
-    double windDeg = (forecast['wind_deg'] ?? 0).toDouble();
+    double wind = parseDouble(forecast['wind_speed']);
+    double rain = parseDouble(forecast['rain']);
+    double humidity = parseDouble(forecast['humidity']);
+    double temp = parseDouble(forecast['temp']);
+    double windDeg = parseDouble(forecast['wind_deg']);
 
     if (wind > limits.maxWindSpeed) {
       issues.add('Wind speed > ${limits.maxWindSpeed} m/s');
