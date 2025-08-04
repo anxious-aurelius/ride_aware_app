@@ -40,3 +40,38 @@ def test_forecast_missing_api_key(monkeypatch):
     )
     assert resp.status_code == 500
     assert resp.json()["detail"] == "OPENWEATHER_API_KEY environment variable not set"
+
+
+def test_route_forecast(monkeypatch):
+    async def fake_eval_route(points, time, thresholds):
+        return {
+            "status": "ok",
+            "issues": [],
+            "borderline": [],
+            "summary": {"max_wind_speed": 5},
+            "points": [],
+        }
+
+    monkeypatch.setattr(forecast, "evaluate_route", fake_eval_route)
+
+    app = FastAPI()
+    app.include_router(forecast.router)
+    client = TestClient(app)
+
+    body = {
+        "points": [{"latitude": 1.0, "longitude": 2.0}],
+        "time": "2024-01-01T08:00:00",
+        "thresholds": {
+            "max_wind_speed": 10,
+            "max_rain_intensity": 5,
+            "max_humidity": 80,
+            "min_temperature": 0,
+            "max_temperature": 30,
+            "headwind_sensitivity": 20,
+            "crosswind_sensitivity": 15,
+        },
+    }
+
+    resp = client.post("/api/forecast/route", json=body)
+    assert resp.status_code == 200
+    assert resp.json()["summary"]["max_wind_speed"] == 5

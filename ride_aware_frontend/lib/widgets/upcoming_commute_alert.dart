@@ -62,8 +62,8 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         : result.status == 'warning'
             ? Icons.warning
             : Icons.check_circle;
-    final headwind = parseDouble(result.forecast['headwind']);
-    final crosswind = parseDouble(result.forecast['crosswind']);
+    final headwind = parseDouble(result.summary['max_headwind']);
+    final crosswind = parseDouble(result.summary['max_crosswind']);
     return Card(
       margin: const EdgeInsets.all(16),
       color: color.withOpacity(0.1),
@@ -87,11 +87,13 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
-            _metricRow('Temperature',
-                '${result.forecast['temp']}°C',
+            _metricRow(
+                'Temperature',
+                '${result.summary['min_temp']} - ${result.summary['max_temp']}°C',
                 'range ${limits.minTemperature}-${limits.maxTemperature}°C'),
-            _metricRow('Wind speed',
-                '${result.forecast['wind_speed']} m/s',
+            _metricRow(
+                'Wind speed',
+                '${result.summary['max_wind_speed']} m/s',
                 'max ${limits.maxWindSpeed} m/s'),
             _metricRow('Headwind',
                 '${headwind.toStringAsFixed(1)} m/s',
@@ -100,10 +102,10 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 '${crosswind.toStringAsFixed(1)} m/s',
                 'max ${limits.crosswindSensitivity} m/s'),
             _metricRow('Rain',
-                '${result.forecast['rain'] ?? 0} mm',
+                '${result.summary['max_rain'] ?? 0} mm',
                 'max ${limits.maxRainIntensity} mm'),
             _metricRow('Humidity',
-                '${result.forecast['humidity']}%',
+                '${result.summary['max_humidity']}%',
                 'max ${limits.maxHumidity}%'),
             if (result.issues.isNotEmpty)
               Padding(

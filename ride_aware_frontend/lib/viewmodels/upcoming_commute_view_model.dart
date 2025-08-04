@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/user_preferences.dart';
 import '../models/route_model.dart';
@@ -6,13 +5,12 @@ import '../models/geo_point.dart';
 import '../services/preferences_service.dart';
 import '../services/forecast_service.dart';
 import '../services/user_route_service.dart';
-import '../utils/parsing.dart';
 
 class CommuteAlertResult {
   final DateTime time;
   final WeatherLimits limits;
   final RouteModel route;
-  final Map<String, dynamic> forecast;
+  final Map<String, dynamic> summary;
   final String status; // ok, warning, alert
   final List<String> issues;
   final List<String> borderline;
@@ -21,7 +19,7 @@ class CommuteAlertResult {
     required this.time,
     required this.limits,
     required this.route,
-    required this.forecast,
+    required this.summary,
     required this.status,
     required this.issues,
     required this.borderline,
@@ -58,18 +56,14 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
       }
 
       final DateTime targetTime = _nextCommuteTime(prefs);
-      final forecast = await _forecastService.getForecast(
-          route.startLocation.latitude,
-          route.startLocation.longitude,
-          targetTime);
-      final evaluation = _evaluate(forecast, prefs.weatherLimits, route);
-      forecast['headwind'] = evaluation['headwind'];
-      forecast['crosswind'] = evaluation['crosswind'];
+      final sampled = _sampleRoute(route);
+      final evaluation = await _forecastService.evaluateRoute(
+          sampled, targetTime, prefs.weatherLimits);
       result = CommuteAlertResult(
         time: targetTime,
         limits: prefs.weatherLimits,
         route: route,
-        forecast: forecast,
+        summary: Map<String, dynamic>.from(evaluation['summary'] as Map),
         status: evaluation['status'] as String,
         issues: List<String>.from(evaluation['issues'] as List),
         borderline: List<String>.from(evaluation['borderline'] as List),
@@ -95,81 +89,11 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
     return scheduled;
   }
 
-  Map<String, dynamic> _evaluate(
-      Map<String, dynamic> forecast, WeatherLimits limits, RouteModel route) {
-    final List<String> issues = [];
-    final List<String> borderline = [];
-
-    double wind = parseDouble(forecast['wind_speed']);
-    double rain = parseDouble(forecast['rain']);
-    double humidity = parseDouble(forecast['humidity']);
-    double temp = parseDouble(forecast['temp']);
-    double windDeg = parseDouble(forecast['wind_deg']);
-
-    if (wind > limits.maxWindSpeed) {
-      issues.add('Wind speed > ${limits.maxWindSpeed} m/s');
-    } else if (wind > limits.maxWindSpeed * 0.8) {
-      borderline.add('Wind speed near limit');
-    }
-
-    if (rain > limits.maxRainIntensity) {
-      issues.add('Rain > ${limits.maxRainIntensity} mm');
-    } else if (rain > limits.maxRainIntensity * 0.8) {
-      borderline.add('Rain near limit');
-    }
-
-    if (humidity > limits.maxHumidity) {
-      issues.add('Humidity > ${limits.maxHumidity}%');
-    }
-
-    if (temp < limits.minTemperature || temp > limits.maxTemperature) {
-      issues.add(
-          'Temperature outside ${limits.minTemperature}-${limits.maxTemperature}°C');
-    } else if (temp < limits.minTemperature + 2 ||
-        temp > limits.maxTemperature - 2) {
-      borderline.add('Temperature near limit');
-    }
-
-    // Headwind and crosswind evaluation
-    final bearing = _bearing(route.startLocation, route.endLocation);
-    final rel = ((windDeg - bearing) + 360) % 360;
-    final head = wind * math.cos(rel * math.pi / 180);
-    final cross = wind * math.sin(rel * math.pi / 180);
-
-    if (head.abs() > limits.headwindSensitivity) {
-      issues.add('Headwind > ${limits.headwindSensitivity} m/s');
-    } else if (head.abs() > limits.headwindSensitivity * 0.8) {
-      borderline.add('Headwind near limit');
-    }
-
-    if (cross.abs() > limits.crosswindSensitivity) {
-      issues.add('Crosswind > ${limits.crosswindSensitivity} m/s');
-    } else if (cross.abs() > limits.crosswindSensitivity * 0.8) {
-      borderline.add('Crosswind near limit');
-    }
-
-    final status = issues.isNotEmpty
-        ? 'alert'
-        : (borderline.isNotEmpty ? 'warning' : 'ok');
-
-    return {
-      'status': status,
-      'issues': issues,
-      'borderline': borderline,
-      'headwind': head.abs(),
-      'crosswind': cross.abs(),
-    };
-  }
-
-  double _bearing(GeoPoint a, GeoPoint b) {
-    final lat1 = a.latitude * math.pi / 180;
-    final lat2 = b.latitude * math.pi / 180;
-    final dLon = (b.longitude - a.longitude) * math.pi / 180;
-    final y = math.sin(dLon) * math.cos(lat2);
-    final x = math.cos(lat1) * math.sin(lat2) -
-        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
-    final brng = math.atan2(y, x) * 180 / math.pi;
-    return (brng + 360) % 360;
+  List<GeoPoint> _sampleRoute(RouteModel route, {int samples = 5}) {
+    final pts = [route.startLocation, ...route.routePoints, route.endLocation];
+    if (pts.length <= samples) return pts;
+    final step = (pts.length - 1) / (samples - 1);
+    return List.generate(samples, (i) => pts[(i * step).round()]);
   }
 
   Future<void> setCommuteTime(TimeOfDay time) async {
