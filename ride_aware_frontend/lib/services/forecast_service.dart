@@ -1,14 +1,23 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import '../utils/parsing.dart';
 import 'device_id_service.dart';
 import 'api_service.dart';
 
 class ForecastService {
-  final DeviceIdService _deviceIdService = DeviceIdService();
+  final DeviceIdService _deviceIdService;
+  final http.Client _client;
+
+  ForecastService({DeviceIdService? deviceIdService, http.Client? client})
+    : _deviceIdService = deviceIdService ?? DeviceIdService(),
+      _client = client ?? http.Client();
 
   Future<Map<String, dynamic>> getForecast(
-      double lat, double lon, DateTime time) async {
+    double lat,
+    double lon,
+    DateTime time,
+  ) async {
     final uri = Uri.parse('${ApiService.baseUrl}/api/forecast').replace(
       queryParameters: {
         'lat': lat.toString(),
@@ -17,7 +26,7 @@ class ForecastService {
       },
     );
 
-    final response = await http.get(uri, headers: await _getHeaders());
+    final response = await _client.get(uri, headers: await _getHeaders());
 
     if (kDebugMode) {
       print('📡 Forecast API Response: ${response.statusCode}');
@@ -27,7 +36,23 @@ class ForecastService {
     }
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      const numericKeys = {
+        'wind_speed',
+        'wind_deg',
+        'rain',
+        'humidity',
+        'temp',
+        'visibility',
+        'uvi',
+        'clouds',
+      };
+      for (final key in numericKeys) {
+        if (data.containsKey(key)) {
+          data[key] = parseDouble(data[key]);
+        }
+      }
+      return data;
     } else {
       throw Exception('Failed to load forecast: ${response.statusCode}');
     }
