@@ -18,6 +18,7 @@ class _CommuteStatusPanelState extends State<CommuteStatusPanel> {
   CommuteStatusResponse? _statusData;
   bool _isLoading = true;
   String? _errorMessage;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -172,28 +173,39 @@ class _CommuteStatusPanelState extends State<CommuteStatusPanel> {
   Widget _buildStatusContent() {
     if (_statusData == null) return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        // Morning Commute
-        _buildCommuteCard(
-          title: 'Morning Commute',
-          icon: Icons.wb_sunny_outlined,
-          data: _statusData!.morning,
-        ),
+    final pages = [
+      _buildCommuteCard(
+        key: const ValueKey('morning'),
+        title: 'Morning Commute',
+        icon: Icons.wb_sunny_outlined,
+        data: _statusData!.morning,
+      ),
+      _buildCommuteCard(
+        key: const ValueKey('evening'),
+        title: 'Evening Commute',
+        icon: Icons.nights_stay_outlined,
+        data: _statusData!.evening,
+      ),
+    ];
 
-        const SizedBox(height: 16),
-
-        // Evening Commute
-        _buildCommuteCard(
-          title: 'Evening Commute',
-          icon: Icons.nights_stay_outlined,
-          data: _statusData!.evening,
-        ),
-      ],
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity == null) return;
+        if (details.primaryVelocity! < 0 && _currentIndex < pages.length - 1) {
+          setState(() => _currentIndex++);
+        } else if (details.primaryVelocity! > 0 && _currentIndex > 0) {
+          setState(() => _currentIndex--);
+        }
+      },
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: pages[_currentIndex],
+      ),
     );
   }
 
   Widget _buildCommuteCard({
+    Key? key,
     required String title,
     required IconData icon,
     required CommuteStatusData data,
@@ -201,6 +213,7 @@ class _CommuteStatusPanelState extends State<CommuteStatusPanel> {
     final theme = Theme.of(context);
 
     return Container(
+      key: key,
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
