@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import '../utils/parsing.dart';
 import 'device_id_service.dart';
 import 'api_service.dart';
+import '../models/geo_point.dart';
+import '../models/user_preferences.dart';
 
 class ForecastService {
   final DeviceIdService _deviceIdService;
@@ -55,6 +57,30 @@ class ForecastService {
       return data;
     } else {
       throw Exception('Failed to load forecast: ${response.statusCode}');
+    }
+  }
+
+  /// Evaluate weather along a route of [points] at the specified [time].
+  Future<Map<String, dynamic>> evaluateRoute(
+    List<GeoPoint> points,
+    DateTime time,
+    WeatherLimits limits,
+  ) async {
+    final uri = Uri.parse('${ApiService.baseUrl}/api/forecast/route');
+    final body = {
+      'points':
+          points.map((p) => {'latitude': p.latitude, 'longitude': p.longitude}).toList(),
+      'time': time.toIso8601String(),
+      'thresholds': limits.toJson(),
+    };
+
+    final response =
+        await _client.post(uri, headers: await _getHeaders(), body: jsonEncode(body));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to evaluate route: ${response.statusCode}');
     }
   }
 
