@@ -12,7 +12,6 @@ class _WeatherMetric {
   final String description;
   final String subDescription;
   final Color color;
-  final VoidCallback? onTap;
 
   const _WeatherMetric(
     this.icon,
@@ -20,7 +19,6 @@ class _WeatherMetric {
     this.description,
     this.subDescription,
     this.color,
-    [this.onTap],
   );
 }
 
@@ -331,7 +329,6 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
               humidityDesc,
               humiditySubDesc,
               humidityColor,
-              humidity > humidityLimit ? _showHumidityAlert : null,
             ),
           ], theme),
         ],
@@ -439,18 +436,29 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       ),
     );
 
-    if (metric.onTap != null) {
-      return GestureDetector(onTap: metric.onTap, child: card);
+    if (metric.color == Colors.red) {
+      return GestureDetector(
+        onTap: () => _showConditionWarning(context, metric.caption),
+        child: card,
+      );
     }
     return card;
   }
 
-  void _showHumidityAlert() {
+  void _showConditionWarning(BuildContext context, String metricName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(t('High Humidity')),
-        content: Text(t('Bring extra bottle')),
+        title: Text(t('$metricName Alert')),
+        content: Text(
+          metricName == 'Humidity'
+              ? t(
+                  'Humidity is above your set range. Consider bringing an extra water bottle.',
+                )
+              : t(
+                  '$metricName is outside your preferred range. Weather condition is bad, be careful.',
+                ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
