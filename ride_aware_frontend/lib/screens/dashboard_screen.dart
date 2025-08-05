@@ -54,15 +54,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final now = TimeOfDay.now();
     final morning = _prefs!.commuteWindows.morningLocal;
     final evening = _prefs!.commuteWindows.eveningLocal;
-    bool after(TimeOfDay a, TimeOfDay b) =>
+    bool isAfter(TimeOfDay a, TimeOfDay b) =>
         a.hour > b.hour || (a.hour == b.hour && a.minute >= b.minute);
-    bool before(TimeOfDay a, TimeOfDay b) =>
-        a.hour < b.hour || (a.hour == b.hour && a.minute < b.minute);
-    if (!_morningFeedbackGiven && after(now, morning) && before(now, evening)) {
-      return 'morning';
-    }
-    if (!_eveningFeedbackGiven && after(now, evening)) {
+    // Prioritize evening feedback once the evening commute has passed.
+    if (!_eveningFeedbackGiven && isAfter(now, evening)) {
       return 'evening';
+    }
+    // Show morning feedback any time after the morning commute until it is given.
+    if (!_morningFeedbackGiven && isAfter(now, morning)) {
+      return 'morning';
     }
     return null;
   }
