@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, condecimal, StringConstraints
+from pydantic import BaseModel, Field, condecimal, StringConstraints, ConfigDict
 from typing import Annotated, Optional
 
 TimeStr = Annotated[str, StringConstraints(pattern=r"^\d{2}:\d{2}$")]
@@ -20,8 +20,9 @@ class OfficeLocation(BaseModel):
     longitude: condecimal(gt=-180, le=180, decimal_places=6)
 
 class CommuteWindows(BaseModel):
-    morning: TimeStr
-    evening: TimeStr
+    model_config = ConfigDict(populate_by_name=True)
+    start: TimeStr = Field(alias="morning")
+    end: TimeStr = Field(alias="evening")
 
 
 class Thresholds(BaseModel):

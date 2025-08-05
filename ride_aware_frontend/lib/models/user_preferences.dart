@@ -361,36 +361,40 @@ class OfficeLocation {
 }
 
 class CommuteWindows {
-  final String morning; // Stored in UTC format (HH:mm)
-  final String evening; // Stored in UTC format (HH:mm)
+  /// Stored in UTC format (HH:mm)
+  final String start;
 
-  const CommuteWindows({required this.morning, required this.evening});
+  /// Stored in UTC format (HH:mm)
+  final String end;
+
+  const CommuteWindows({required this.start, required this.end});
 
   factory CommuteWindows.defaultValues() {
     // Default times in UTC (assuming user is in UTC+0 initially)
-    return const CommuteWindows(morning: '07:30', evening: '17:30');
+    return const CommuteWindows(start: '07:30', end: '17:30');
   }
 
   factory CommuteWindows.fromJson(Map<String, dynamic> json) {
     return CommuteWindows(
-      morning: json['morning'] ?? '07:30',
-      evening: json['evening'] ?? '17:30',
+      start: json['morning'] ?? '07:30',
+      end: json['evening'] ?? '17:30',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'morning': morning, 'evening': evening};
+    // Keep existing JSON keys for backwards compatibility
+    return {'morning': start, 'evening': end};
   }
 
-  CommuteWindows copyWith({String? morning, String? evening}) {
+  CommuteWindows copyWith({String? start, String? end}) {
     return CommuteWindows(
-      morning: morning ?? this.morning,
-      evening: evening ?? this.evening,
+      start: start ?? this.start,
+      end: end ?? this.end,
     );
   }
 
   bool get isValid {
-    return _isValidTimeFormat(morning) && _isValidTimeFormat(evening);
+    return _isValidTimeFormat(start) && _isValidTimeFormat(end);
   }
 
   bool _isValidTimeFormat(String time) {
@@ -398,7 +402,7 @@ class CommuteWindows {
     return timeRegex.hasMatch(time);
   }
 
-  /// Convert UTC time string to local TimeOfDay
+  /// Convert UTC time string to local [TimeOfDay]
   TimeOfDay utcToLocalTimeOfDay(String utcTimeString) {
     try {
       final parts = utcTimeString.split(':');
@@ -430,7 +434,7 @@ class CommuteWindows {
     return const TimeOfDay(hour: 7, minute: 30);
   }
 
-  /// Convert local TimeOfDay to UTC time string
+  /// Convert local [TimeOfDay] to UTC time string
   static String localTimeOfDayToUtc(TimeOfDay localTime) {
     try {
       // Create a DateTime in local time for today with the specified time
@@ -453,27 +457,27 @@ class CommuteWindows {
     }
   }
 
-  /// Get morning commute time in local timezone
-  TimeOfDay get morningLocal => utcToLocalTimeOfDay(morning);
+  /// Get route start time in the local timezone
+  TimeOfDay get startLocal => utcToLocalTimeOfDay(start);
 
-  /// Get evening commute time in local timezone
-  TimeOfDay get eveningLocal => utcToLocalTimeOfDay(evening);
+  /// Get route end time in the local timezone
+  TimeOfDay get endLocal => utcToLocalTimeOfDay(end);
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is CommuteWindows &&
-        other.morning == morning &&
-        other.evening == evening;
+        other.start == start &&
+        other.end == end;
   }
 
   @override
   int get hashCode {
-    return morning.hashCode ^ evening.hashCode;
+    return start.hashCode ^ end.hashCode;
   }
 
   @override
   String toString() {
-    return 'CommuteWindows(morning: $morning UTC, evening: $evening UTC)';
+    return 'CommuteWindows(start: $start UTC, end: $end UTC)';
   }
 }

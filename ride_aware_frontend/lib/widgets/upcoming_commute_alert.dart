@@ -41,10 +41,11 @@ class UpcomingCommuteAlert extends StatefulWidget {
   });
 
   @override
-  State<UpcomingCommuteAlert> createState() => _UpcomingCommuteAlertState();
+  @override
+  State<UpcomingCommuteAlert> createState() => UpcomingCommuteAlertState();
 }
 
-class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
+class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   final UpcomingCommuteViewModel _vm = UpcomingCommuteViewModel();
   final PreferencesService _preferencesService = PreferencesService();
   final ApiService _apiService = ApiService();
@@ -64,6 +65,9 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
 
   UserPreferences? _prefs;
 
+  TimeOfDay? _routeStartTime;
+  TimeOfDay? _routeEndTime;
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +86,15 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     setState(() {
       _prefs = prefs;
     });
+  }
+
+  String _formatTimeOfDay(TimeOfDay? time) {
+    if (time == null) return '--:--';
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  void refreshForecast() {
+    _vm.load();
   }
 
   @override
@@ -116,15 +129,15 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     bool showPostCommuteCard = false;
     if (_prefs != null) {
       final now = DateTime.now();
-      final morning = _prefs!.commuteWindows.morningLocal;
-      final todayMorningTime = DateTime(
+      final start = _prefs!.commuteWindows.startLocal;
+      final todayStartTime = DateTime(
         now.year,
         now.month,
         now.day,
-        morning.hour,
-        morning.minute,
+        start.hour,
+        start.minute,
       );
-      showPostCommuteCard = now.isAfter(todayMorningTime);
+      showPostCommuteCard = now.isAfter(todayStartTime);
     }
 
     return Card(
@@ -190,7 +203,7 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'If you want to adjust your thresholds for next time, tap below:',
+                        'If you want to adjust your route time or thresholds for next time, tap below:',
                         style: theme.textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 12),
@@ -609,7 +622,7 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             Icon(Icons.tune, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
             Text(
-              'Adjust Thresholds',
+              'Adjust Settings',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -626,6 +639,64 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text('Commute Times', style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Route Start Time',
+                        style: theme.textTheme.bodyMedium),
+                    const SizedBox(height: 4),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.access_time),
+                      label: Text(_formatTimeOfDay(_routeStartTime)),
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: _routeStartTime ??
+                              const TimeOfDay(hour: 7, minute: 30),
+                          helpText: 'Select Route Start Time (Local)',
+                        );
+                        if (picked != null) {
+                          setState(() => _routeStartTime = picked);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Route End Time',
+                        style: theme.textTheme.bodyMedium),
+                    const SizedBox(height: 4),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.access_time),
+                      label: Text(_formatTimeOfDay(_routeEndTime)),
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: _routeEndTime ??
+                              const TimeOfDay(hour: 17, minute: 30),
+                          helpText: 'Select Route End Time (Local)',
+                        );
+                        if (picked != null) {
+                          setState(() => _routeEndTime = picked);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           _buildNumberField(
             controller: _windSpeedController,
             label: 'Max Wind Speed (m/s)',
@@ -778,6 +849,8 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           prefs.weatherLimits.maxTemperature.toString();
       _headwindSensitivity = prefs.weatherLimits.headwindSensitivity;
       _crosswindSensitivity = prefs.weatherLimits.crosswindSensitivity;
+      _routeStartTime = prefs.commuteWindows.startLocal;
+      _routeEndTime = prefs.commuteWindows.endLocal;
     });
   }
 
@@ -803,7 +876,14 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       );
 
       final prefs = await _preferencesService.loadPreferences();
-      final updatedPrefs = prefs.copyWith(weatherLimits: newLimits);
+      final startUtc = CommuteWindows.localTimeOfDayToUtc(
+          _routeStartTime ?? prefs.commuteWindows.startLocal);
+      final endUtc = CommuteWindows.localTimeOfDayToUtc(
+          _routeEndTime ?? prefs.commuteWindows.endLocal);
+      final updatedPrefs = prefs.copyWith(
+        weatherLimits: newLimits,
+        commuteWindows: CommuteWindows(start: startUtc, end: endUtc),
+      );
 
       await _apiService.submitThresholds(updatedPrefs);
       await _preferencesService.savePreferencesWithDeviceId(updatedPrefs);
