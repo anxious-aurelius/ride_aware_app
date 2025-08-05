@@ -25,7 +25,11 @@ async def init_db() -> None:
         ],
         unique=True,
     )
-    await feedback_collection.create_index("threshold_id", unique=True)
+    await feedback_collection.create_index(
+        "threshold_id",
+        unique=True,
+        partialFilterExpression={"threshold_id": {"$exists": True, "$ne": None}},
+    )
     await ride_history_collection.create_index(
         [("date", 1), ("threshold_id", 1)], unique=True
     )
