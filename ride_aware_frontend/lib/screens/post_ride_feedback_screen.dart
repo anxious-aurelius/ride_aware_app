@@ -3,8 +3,8 @@ import '../services/commute_status_service.dart';
 import '../services/api_service.dart';
 
 class PostRideFeedbackScreen extends StatefulWidget {
-  final String commuteTime; // 'morning' or 'evening'
-  const PostRideFeedbackScreen({super.key, required this.commuteTime});
+  final String commute; // 'start' or 'end'
+  const PostRideFeedbackScreen({super.key, required this.commute});
 
   @override
   State<PostRideFeedbackScreen> createState() => _PostRideFeedbackScreenState();
@@ -31,9 +31,7 @@ class _PostRideFeedbackScreenState extends State<PostRideFeedbackScreen> {
 
   Future<List<String>> _loadViolations() async {
     final status = await _statusService.getCommuteStatus();
-    final data = widget.commuteTime == 'morning'
-        ? status.morning
-        : status.evening;
+    final data = widget.commute == 'start' ? status.start : status.end;
     return data.violations;
   }
 
@@ -136,7 +134,7 @@ class _PostRideFeedbackScreenState extends State<PostRideFeedbackScreen> {
 
   Future<void> _submit() async {
     final payload = {
-      'commute_time': widget.commuteTime,
+      'commute': widget.commute,
       'temperature_ok': temperatureOk,
       'wind_speed_ok': windSpeedOk,
       'headwind_ok': headwindOk,
@@ -150,7 +148,7 @@ class _PostRideFeedbackScreenState extends State<PostRideFeedbackScreen> {
       if (context.mounted) {
         Navigator.pop(context, {
           'summary': summary,
-          'commute': widget.commuteTime,
+          'commute': widget.commute,
         });
       }
     } catch (e) {

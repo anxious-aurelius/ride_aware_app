@@ -1,22 +1,22 @@
 class CommuteStatusResponse {
   final String deviceId;
-  final CommuteStatusData morning;
-  final CommuteStatusData evening;
+  final CommuteStatusData start;
+  final CommuteStatusData end;
 
   const CommuteStatusResponse({
     required this.deviceId,
-    required this.morning,
-    required this.evening,
+    required this.start,
+    required this.end,
   });
 
   factory CommuteStatusResponse.fromJson(Map<String, dynamic> json) {
     return CommuteStatusResponse(
       deviceId: json['device_id'] as String? ?? '',
-      morning: CommuteStatusData.fromJson(
-        json['morning_status'] as Map<String, dynamic>? ?? {},
+      start: CommuteStatusData.fromJson(
+        json['start_status'] as Map<String, dynamic>? ?? {},
       ),
-      evening: CommuteStatusData.fromJson(
-        json['evening_status'] as Map<String, dynamic>? ?? {},
+      end: CommuteStatusData.fromJson(
+        json['end_status'] as Map<String, dynamic>? ?? {},
       ),
     );
   }

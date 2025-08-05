@@ -8,7 +8,7 @@ class PreferencesService {
   static const String _preferencesKey = 'user_preferences';
   static const String _thresholdsSetKey = 'thresholdsSet';
   static const String _prefsVersionKey = 'prefsVersion';
-  static const String _lastEveningFeedbackKey = 'lastEveningFeedback';
+  static const String _lastEndFeedbackKey = 'lastEndFeedback';
   static const String _currentThresholdIdKey = 'currentThresholdId';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
@@ -92,15 +92,14 @@ class PreferencesService {
     return prefs.containsKey(_preferencesKey);
   }
 
-  Future<void> setEveningFeedbackGiven(DateTime date) async {
+  Future<void> setEndFeedbackGiven(DateTime date) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        _lastEveningFeedbackKey, date.toIso8601String());
+    await prefs.setString(_lastEndFeedbackKey, date.toIso8601String());
   }
 
-  Future<bool> isEveningFeedbackGivenToday() async {
+  Future<bool> isEndFeedbackGivenToday() async {
     final prefs = await SharedPreferences.getInstance();
-    final dateStr = prefs.getString(_lastEveningFeedbackKey);
+    final dateStr = prefs.getString(_lastEndFeedbackKey);
     if (dateStr == null) return false;
     final date = DateTime.tryParse(dateStr);
     if (date == null) return false;
@@ -110,9 +109,9 @@ class PreferencesService {
         now.day == date.day;
   }
 
-  Future<void> clearEveningFeedbackGiven() async {
+  Future<void> clearEndFeedbackGiven() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_lastEveningFeedbackKey);
+    await prefs.remove(_lastEndFeedbackKey);
   }
 
   Future<void> saveCurrentThresholdId(String thresholdId) async {

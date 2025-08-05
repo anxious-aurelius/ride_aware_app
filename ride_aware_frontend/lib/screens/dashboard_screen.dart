@@ -24,7 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   UserPreferences? _prefs;
   String _feedbackSummary = 'You did a great job!';
-  bool _eveningFeedbackGiven = false;
+  bool _endFeedbackGiven = false;
   DateTime _lastReset = DateTime.now();
   bool _feedbackNotificationShown = false;
   bool _historySaved = false;
@@ -44,10 +44,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _loadPrefs() async {
     final p = await _prefsService.loadPreferences();
-    final feedbackGiven = await _prefsService.isEveningFeedbackGivenToday();
+    final feedbackGiven = await _prefsService.isEndFeedbackGivenToday();
     setState(() {
       _prefs = p;
-      _eveningFeedbackGiven = feedbackGiven;
+      _endFeedbackGiven = feedbackGiven;
     });
   }
 
@@ -62,10 +62,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (now.year != _lastReset.year ||
         now.month != _lastReset.month ||
         now.day != _lastReset.day) {
-      _eveningFeedbackGiven = false;
+      _endFeedbackGiven = false;
       _feedbackSummary = 'You did a great job!';
       _lastReset = now;
-      _prefsService.clearEveningFeedbackGiven();
+      _prefsService.clearEndFeedbackGiven();
       _feedbackNotificationShown = false;
       _historySaved = false;
     }
@@ -120,7 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _resetFlagsIfNewDay();
     _saveRideHistoryIfCompleted();
     final showFeedback = _shouldShowFeedbackCard();
-    if (showFeedback && !_eveningFeedbackGiven && !_feedbackNotificationShown) {
+    if (showFeedback && !_endFeedbackGiven && !_feedbackNotificationShown) {
       _notificationService.showFeedbackNotification();
       _feedbackNotificationShown = true;
     }
@@ -177,33 +177,32 @@ class _DashboardScreenState extends State<DashboardScreen>
             // Commute Feedback Card
             if (showFeedback)
               Card(
-                color: _eveningFeedbackGiven ? Colors.grey : Colors.red,
+                color: _endFeedbackGiven ? Colors.grey : Colors.red,
                 margin: const EdgeInsets.all(16),
                 child: ListTile(
                   leading: const Icon(Icons.feedback, color: Colors.white),
                   title: Text(
-                    _eveningFeedbackGiven
+                    _endFeedbackGiven
                         ? 'Feedback submitted for your last ride'
                         : 'Feedback available for your last ride',
                   ),
-                  onTap: _eveningFeedbackGiven
+                  onTap: _endFeedbackGiven
                       ? null
                       : () async {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const PostRideFeedbackScreen(
-                                commuteTime: 'evening',
+                                commute: 'end',
                               ),
                             ),
                           );
                           if (result != null) {
                             setState(() {
                               _feedbackSummary = result['summary'] as String;
-                              _eveningFeedbackGiven = true;
+                              _endFeedbackGiven = true;
                             });
-                            _prefsService
-                                .setEveningFeedbackGiven(DateTime.now());
+                            _prefsService.setEndFeedbackGiven(DateTime.now());
                           }
                         },
                 ),

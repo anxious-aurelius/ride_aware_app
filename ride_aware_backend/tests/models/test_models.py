@@ -43,6 +43,7 @@ def test_thresholds_model_valid():
         device_id="device123",
         date="2024-01-01",
         start_time="08:00",
+        end_time="17:00",
         weather_limits=WeatherLimits(
             max_wind_speed=10,
             max_rain_intensity=5,
@@ -64,6 +65,7 @@ def test_thresholds_model_invalid_device_id():
             device_id="dev",
             date="2024-01-01",
             start_time="08:00",
+            end_time="17:00",
             weather_limits=WeatherLimits(
                 max_wind_speed=10,
                 max_rain_intensity=5,

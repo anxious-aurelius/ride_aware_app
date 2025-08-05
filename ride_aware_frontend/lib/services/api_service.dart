@@ -35,9 +35,9 @@ class ApiService {
         'device_id': deviceId,
         'date': DateTime.now().toIso8601String().split('T').first,
         'start_time': preferences.commuteWindows.start,
+        'end_time': preferences.commuteWindows.end,
         'weather_limits': preferences.weatherLimits.toJson(),
         'office_location': preferences.officeLocation.toJson(),
-        'commute_windows': preferences.commuteWindows.toJson(),
       };
 
       // Debug messages

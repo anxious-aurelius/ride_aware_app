@@ -11,6 +11,7 @@ def test_upsert_threshold(monkeypatch):
         device_id="device123",
         date="2024-01-01",
         start_time="08:00",
+        end_time="17:00",
         weather_limits=WeatherLimits(
             max_wind_speed=10,
             max_rain_intensity=5,
@@ -36,6 +37,7 @@ def test_get_thresholds(monkeypatch):
         "device_id": "device123",
         "date": "2024-01-01",
         "start_time": "08:00",
+        "end_time": "17:00",
         "weather_limits": {
             "max_wind_speed": 10,
             "max_rain_intensity": 5,
@@ -53,7 +55,7 @@ def test_get_thresholds(monkeypatch):
     collection = type("C", (), {"find_one": AsyncMock(return_value=dict(doc))})()
     monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
     result = asyncio.run(
-        threshold_controller.get_thresholds("device123", "2024-01-01", "08:00")
+        threshold_controller.get_thresholds("device123", "2024-01-01", "08:00", "17:00")
     )
     assert result["device_id"] == "device123"
 
@@ -63,5 +65,7 @@ def test_get_thresholds_not_found(monkeypatch):
     monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
     with pytest.raises(threshold_controller.HTTPException):
         asyncio.run(
-            threshold_controller.get_thresholds("device123", "2024-01-01", "08:00")
+            threshold_controller.get_thresholds(
+                "device123", "2024-01-01", "08:00", "17:00"
+            )
         )

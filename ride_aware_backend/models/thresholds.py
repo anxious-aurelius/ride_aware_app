@@ -24,11 +24,6 @@ class OfficeLocation(BaseModel):
     latitude: condecimal(gt=-90, le=90, decimal_places=6)
     longitude: condecimal(gt=-180, le=180, decimal_places=6)
 
-class CommuteWindows(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
-    start: TimeStr = Field(alias="morning")
-    end: TimeStr = Field(alias="evening")
-
 
 class Thresholds(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -36,6 +31,6 @@ class Thresholds(BaseModel):
     device_id: str = Field(..., min_length=6, max_length=64)
     date: DateStr
     start_time: TimeStr
+    end_time: TimeStr
     weather_limits: WeatherLimits
     office_location: OfficeLocation
-    commute_windows: Optional[CommuteWindows] = None
