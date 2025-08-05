@@ -1,4 +1,5 @@
 import pytest
+import pytest
 from fastapi.testclient import TestClient
 
 from main import app
@@ -20,6 +21,7 @@ def test_set_threshold_success():
         "device_id": "device123",
         "date": "2024-01-01",
         "start_time": "08:00",
+        "end_time": "17:00",
         "weather_limits": {
             "max_wind_speed": 10,
             "max_rain_intensity": 5,
@@ -30,7 +32,6 @@ def test_set_threshold_success():
             "crosswind_sensitivity": 15,
         },
         "office_location": {"latitude": 0, "longitude": 0},
-        "commute_windows": {"morning": "07:30", "evening": "17:30"},
     }
     response = client.post("/thresholds", json=payload)
     assert response.status_code == 200

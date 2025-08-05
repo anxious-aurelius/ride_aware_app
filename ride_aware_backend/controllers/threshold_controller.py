@@ -12,14 +12,20 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
     device_id = data["device_id"]
     date = data["date"]
     start_time = data["start_time"]
+    end_time = data["end_time"]
     logger.info(
-        "Upserting thresholds for device %s on %s at %s", device_id, date, start_time
+        "Upserting thresholds for device %s on %s from %s to %s",
+        device_id,
+        date,
+        start_time,
+        end_time,
     )
 
     filter_doc = {
         "device_id": device_id,
         "date": date,
         "start_time": start_time,
+        "end_time": end_time,
     }
 
     result = await thresholds_collection.update_one(
@@ -28,10 +34,11 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
         upsert=True,
     )
     logger.info(
-        "Thresholds upserted for device %s on %s at %s",
+        "Thresholds upserted for device %s on %s from %s to %s",
         device_id,
         date,
         start_time,
+        end_time,
     )
     logger.debug(
         "Upsert result for %s: modified=%s upserted_id=%s",
@@ -44,25 +51,36 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
         "device_id": device_id,
         "date": date,
         "start_time": start_time,
+        "end_time": end_time,
         "status": "ok",
         "modified_count": getattr(result, "modified_count", None),
         "upserted_id": str(getattr(result, "upserted_id", "")) or None,
     }
 
 
-async def get_thresholds(device_id: str, date: str, start_time: str) -> dict:
+async def get_thresholds(device_id: str, date: str, start_time: str, end_time: str) -> dict:
     logger.info(
-        "Retrieving thresholds for device %s on %s at %s", device_id, date, start_time
+        "Retrieving thresholds for device %s on %s from %s to %s",
+        device_id,
+        date,
+        start_time,
+        end_time,
     )
     doc = await thresholds_collection.find_one(
-        {"device_id": device_id, "date": date, "start_time": start_time}
+        {
+            "device_id": device_id,
+            "date": date,
+            "start_time": start_time,
+            "end_time": end_time,
+        }
     )
     if not doc:
         logger.warning(
-            "Thresholds not found for device %s on %s at %s",
+            "Thresholds not found for device %s on %s from %s to %s",
             device_id,
             date,
             start_time,
+            end_time,
         )
         raise HTTPException(status_code=404, detail="Thresholds not found")
 

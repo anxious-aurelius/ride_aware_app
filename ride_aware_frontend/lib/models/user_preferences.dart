@@ -32,7 +32,10 @@ class UserPreferences {
         json['environmental_risk'] ?? {},
       ),
       officeLocation: OfficeLocation.fromJson(json['office_location'] ?? {}),
-      commuteWindows: CommuteWindows.fromJson(json['commute_windows'] ?? {}),
+      commuteWindows: CommuteWindows.fromJson({
+        'start': json['start_time'] ?? '07:30',
+        'end': json['end_time'] ?? '17:30',
+      }),
     );
   }
 
@@ -42,7 +45,8 @@ class UserPreferences {
       'weather_limits': weatherLimits.toJson(),
       'environmental_risk': environmentalRisk.toJson(),
       'office_location': officeLocation.toJson(),
-      'commute_windows': commuteWindows.toJson(),
+      'start_time': commuteWindows.start,
+      'end_time': commuteWindows.end,
     };
   }
 
@@ -383,14 +387,13 @@ class CommuteWindows {
 
   factory CommuteWindows.fromJson(Map<String, dynamic> json) {
     return CommuteWindows(
-      start: json['morning'] ?? '07:30',
-      end: json['evening'] ?? '17:30',
+      start: json['start'] ?? '07:30',
+      end: json['end'] ?? '17:30',
     );
   }
 
   Map<String, dynamic> toJson() {
-    // Keep existing JSON keys for backwards compatibility
-    return {'morning': start, 'evening': end};
+    return {'start': start, 'end': end};
   }
 
   CommuteWindows copyWith({String? start, String? end}) {

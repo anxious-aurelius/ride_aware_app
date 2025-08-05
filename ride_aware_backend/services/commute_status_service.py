@@ -28,16 +28,8 @@ async def get_commute_status(device_id: str) -> dict:
     lon = float(thresholds.office_location.longitude)
 
     today = datetime.now().date()
-    if thresholds.commute_windows:
-        start_dt = datetime.combine(
-            today, parse_time(thresholds.commute_windows.start)
-        )
-        end_dt = datetime.combine(
-            today, parse_time(thresholds.commute_windows.end)
-        )
-    else:
-        start_dt = datetime.combine(today, parse_time("08:00"))
-        end_dt = datetime.combine(today, parse_time("17:00"))
+    start_dt = datetime.combine(today, parse_time(thresholds.start_time))
+    end_dt = datetime.combine(today, parse_time(thresholds.end_time))
 
     start_weather = get_hourly_forecast(lat, lon, start_dt)
     end_weather = get_hourly_forecast(lat, lon, end_dt)
@@ -57,12 +49,11 @@ async def get_commute_status(device_id: str) -> dict:
 
     return {
         "device_id": device_id,
-        # Keep response keys for backward compatibility
-        "morning_status": {
+        "start_status": {
             "exceeded": start_exceeded,
             "weather_snapshot": start_weather,
         },
-        "evening_status": {
+        "end_status": {
             "exceeded": end_exceeded,
             "weather_snapshot": end_weather,
         },
