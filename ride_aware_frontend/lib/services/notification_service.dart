@@ -1,10 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
-import '../models/user_preferences.dart';
 import 'api_service.dart';
 
 class NotificationService {
@@ -14,8 +10,6 @@ class NotificationService {
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
 
   String? _fcmToken;
 
@@ -59,14 +53,6 @@ class NotificationService {
         if (kDebugMode) {
           print('❌ Notification permission denied');
         }
-      }
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const initSettings = InitializationSettings(android: androidInit);
-      await _localNotifications.initialize(initSettings);
-      tz.initializeTimeZones();
-
-      if (kDebugMode) {
-        _scheduleDebugTestNotification();
       }
     } catch (e) {
       if (kDebugMode) {
@@ -163,66 +149,5 @@ class NotificationService {
     NotificationSettings settings = await _firebaseMessaging
         .requestPermission();
     return settings.authorizationStatus == AuthorizationStatus.authorized;
-  }
-
-  Future<void> scheduleFeedbackNotifications(CommuteWindows windows) async {
-    final now = DateTime.now();
-    final morning = windows.morningLocal;
-    final evening = windows.eveningLocal;
-    var morningTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      morning.hour,
-      morning.minute,
-    );
-    var eveningTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      evening.hour,
-      evening.minute,
-    );
-    morningTime = rollForwardIfPast(morningTime);
-    eveningTime = rollForwardIfPast(eveningTime);
-    await _scheduleLocal(1, morningTime);
-    await _scheduleLocal(2, eveningTime);
-  }
-
-  @visibleForTesting
-  DateTime rollForwardIfPast(DateTime time) {
-    final now = DateTime.now();
-    return time.isBefore(now) ? time.add(const Duration(days: 1)) : time;
-  }
-
-  Future<void> _scheduleLocal(int id, DateTime time) async {
-    await _localNotifications.zonedSchedule(
-      id,
-      'Your commute is over',
-      'Tap to give feedback on your ride.',
-      tz.TZDateTime.from(time, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails('feedback', 'Feedback'),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
-  }
-
-  void _scheduleDebugTestNotification() {
-    final testTime = DateTime.now().add(const Duration(seconds: 5));
-    _localNotifications.zonedSchedule(
-      9999,
-      'Test notification',
-      'This is a debug test.',
-      tz.TZDateTime.from(testTime, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails('debug', 'Debug'),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
   }
 }

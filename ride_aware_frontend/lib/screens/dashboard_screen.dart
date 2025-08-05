@@ -31,7 +31,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadPrefs() async {
     final p = await _prefsService.loadPreferences();
-    await _notificationService.scheduleFeedbackNotifications(p.commuteWindows);
     setState(() {
       _prefs = p;
     });
@@ -121,9 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // Commute Status Panel
-            const UpcomingCommuteAlert(),
-
+            // Commute Feedback Card
             if (pending != null)
               Card(
                 margin: const EdgeInsets.all(16),
@@ -151,6 +148,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
               ),
+
+            // Commute Status Panel
+            const UpcomingCommuteAlert(),
 
             // Notification Status Card
             Card(
