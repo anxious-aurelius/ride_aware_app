@@ -1,6 +1,7 @@
 import logging
 from fastapi import FastAPI
 from routes import thresholds, routes, fcm, commute_status, forecast, feedback, ride_history
+from services.db import init_db
 
 
 logging.basicConfig(
@@ -18,3 +19,8 @@ app.include_router(commute_status.router)
 app.include_router(forecast.router)
 app.include_router(feedback.router)
 app.include_router(ride_history.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    await init_db()

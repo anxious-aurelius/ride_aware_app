@@ -10,5 +10,9 @@ router = APIRouter(prefix="/feedback", tags=["Feedback"])
 @router.post("", include_in_schema=False)
 @router.post("/")
 async def submit_feedback(feedback: Feedback):
-    logger.info("Received feedback for device %s", feedback.device_id)
+    logger.info(
+        "Received feedback for device %s on threshold %s",
+        feedback.device_id,
+        feedback.threshold_id,
+    )
     return await save_feedback(feedback)

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 class RideHistoryEntry(BaseModel):
     device_id: str = Field(..., min_length=6, max_length=64)
+    threshold_id: str = Field(..., min_length=1)
     date: date
     start_time: str
     end_time: str

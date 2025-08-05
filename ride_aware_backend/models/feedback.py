@@ -4,6 +4,7 @@ from typing import Literal
 
 class Feedback(BaseModel):
     device_id: str = Field(..., min_length=6, max_length=64)
+    threshold_id: str = Field(..., min_length=1)
     commute_time: Literal["morning", "evening"]
     temperature_ok: bool
     wind_speed_ok: bool

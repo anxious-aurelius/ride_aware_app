@@ -1,3 +1,4 @@
+from datetime import date
 from pydantic import BaseModel, Field, condecimal, StringConstraints, ConfigDict
 from typing import Annotated, Optional
 
@@ -27,6 +28,8 @@ class CommuteWindows(BaseModel):
 
 class Thresholds(BaseModel):
     device_id: str = Field(..., min_length=6, max_length=64)
+    date: date
+    start_time: TimeStr
     weather_limits: WeatherLimits
     office_location: OfficeLocation
     commute_windows: Optional[CommuteWindows] = None

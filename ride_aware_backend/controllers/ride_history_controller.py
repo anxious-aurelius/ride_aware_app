@@ -10,7 +10,12 @@ logger = logging.getLogger(__name__)
 async def save_ride(entry: RideHistoryEntry) -> dict:
     try:
         await ride_history_collection.insert_one(entry.model_dump(mode="json"))
-        logger.info("Ride history saved for device %s on %s", entry.device_id, entry.date)
+        logger.info(
+            "Ride history saved for device %s on %s (threshold %s)",
+            entry.device_id,
+            entry.date,
+            entry.threshold_id,
+        )
         return {"status": "ok"}
     except PyMongoError as e:
         logger.error("Database error saving ride history for %s: %s", entry.device_id, e)

@@ -8,9 +8,21 @@ logger = logging.getLogger(__name__)
 async def save_feedback(feedback: Feedback) -> dict:
     data = feedback.model_dump(mode="json")
     device_id = data["device_id"]
-    logger.info("Saving feedback for device %s", device_id)
-    result = await feedback_collection.insert_one(data)
-    logger.debug(
-        "Feedback inserted with id %s for device %s", result.inserted_id, device_id
+    threshold_id = data["threshold_id"]
+    logger.info(
+        "Saving feedback for device %s on threshold %s", device_id, threshold_id
     )
-    return {"status": "ok", "feedback_id": str(result.inserted_id)}
+    result = await feedback_collection.update_one(
+        {"threshold_id": threshold_id}, {"$set": data}, upsert=True
+    )
+    logger.debug(
+        "Feedback upserted for threshold %s: modified=%s upserted_id=%s", threshold_id,
+        getattr(result, "modified_count", None), getattr(result, "upserted_id", None)
+    )
+    return {
+        "status": "ok",
+        "device_id": device_id,
+        "threshold_id": threshold_id,
+        "modified_count": getattr(result, "modified_count", None),
+        "upserted_id": str(getattr(result, "upserted_id", "")) or None,
+    }

@@ -11,12 +11,19 @@ router = APIRouter(prefix="/thresholds", tags=["Thresholds"])
 @router.post("", include_in_schema=False)
 @router.post("/")
 async def set_threshold(threshold: Thresholds):
-    logger.info("Setting thresholds for device %s", threshold.device_id)
+    logger.info(
+        "Setting thresholds for device %s on %s at %s",
+        threshold.device_id,
+        threshold.date,
+        threshold.start_time,
+    )
     return await upsert_threshold(threshold)
 
 
-@router.get("/{device_id}")
-async def fetch_threshold(device_id: str):
-    logger.info("Fetching thresholds for device %s", device_id)
-    return await get_thresholds(device_id)
+@router.get("/{device_id}/{date}/{start_time}")
+async def fetch_threshold(device_id: str, date: str, start_time: str):
+    logger.info(
+        "Fetching thresholds for device %s on %s at %s", device_id, date, start_time
+    )
+    return await get_thresholds(device_id, date, start_time)
 
