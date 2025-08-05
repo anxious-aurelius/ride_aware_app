@@ -13,3 +13,19 @@ routes_collection = db["routes"]
 fcm_tokens_collection = db["fcm_tokens"]
 feedback_collection = db["feedback"]
 ride_history_collection = db["ride_history"]
+
+
+async def init_db() -> None:
+    """Initialize database indexes."""
+    await thresholds_collection.create_index(
+        [
+            ("device_id", 1),
+            ("date", 1),
+            ("start_time", 1),
+        ],
+        unique=True,
+    )
+    await feedback_collection.create_index("threshold_id", unique=True)
+    await ride_history_collection.create_index(
+        [("date", 1), ("threshold_id", 1)], unique=True
+    )
