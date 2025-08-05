@@ -33,7 +33,7 @@ class ApiService {
 
       final requestBody = {
         'device_id': deviceId,
-        'date': DateTime.now().toIso8601String().split('T').first,
+        'date': DateTime.now().toUtc().toIso8601String().split('T').first,
         'start_time': preferences.commuteWindows.start,
         'end_time': preferences.commuteWindows.end,
         'weather_limits': preferences.weatherLimits.toJson(),

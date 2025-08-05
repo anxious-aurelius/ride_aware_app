@@ -133,6 +133,7 @@ class _PostRideFeedbackScreenState extends State<PostRideFeedbackScreen> {
   }
 
   Future<void> _submit() async {
+    final summary = _generateSummary();
     final payload = {
       'commute': widget.commute,
       'temperature_ok': temperatureOk,
@@ -141,10 +142,10 @@ class _PostRideFeedbackScreenState extends State<PostRideFeedbackScreen> {
       'crosswind_ok': crosswindOk,
       'precipitation_ok': precipitationOk,
       'humidity_ok': humidityOk,
+      'summary': summary,
     };
     try {
       await _apiService.submitFeedback(payload);
-      final summary = _generateSummary();
       if (context.mounted) {
         Navigator.pop(context, {
           'summary': summary,

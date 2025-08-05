@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 
 
 class Feedback(BaseModel):
@@ -12,3 +12,4 @@ class Feedback(BaseModel):
     crosswind_ok: bool
     precipitation_ok: bool
     humidity_ok: bool
+    summary: Optional[str] = None
