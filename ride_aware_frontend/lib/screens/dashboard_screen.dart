@@ -222,28 +222,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // Feedback Summary Card
-            Card(
-              margin: const EdgeInsets.all(16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Icon(Icons.insights, size: 48),
-                    const SizedBox(height: 8),
-                    Text(
-                      _feedbackSummary,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
+            // // Feedback Summary Card
+            // Card(
+            //   margin: const EdgeInsets.all(16),
+            //   child: Padding(
+            //     padding: const EdgeInsets.all(16),
+            //     child: Column(
+            //       children: [
+            //         const Icon(Icons.insights, size: 48),
+            //         const SizedBox(height: 8),
+            //         Text(
+            //           _feedbackSummary,
+            //           textAlign: TextAlign.center,
+            //           style: const TextStyle(
+            //             fontSize: 18,
+            //             fontWeight: FontWeight.bold,
+            //           ),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ),
             const SizedBox(height: 16),
           ],
         ),
