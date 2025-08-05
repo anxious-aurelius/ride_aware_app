@@ -230,11 +230,11 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     if (minTemp < limits.minTemperature) {
       tempCaption = 'Too Cold';
       tempIcon = Icons.ac_unit;
-      tempColor = Colors.blue;
+      tempColor = Colors.red;
     } else if (maxTemp > limits.maxTemperature) {
       tempCaption = 'Too Warm';
       tempIcon = Icons.local_fire_department;
-      tempColor = Colors.orange;
+      tempColor = Colors.red;
     } else {
       tempCaption = 'Comfortable';
       tempIcon = Icons.thermostat;
@@ -446,19 +446,37 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   void _showConditionWarning(BuildContext context, String metricName) {
+    String message;
+    switch (metricName) {
+      case 'Humidity':
+        message =
+            'Humidity is above your set range. Consider bringing an extra water bottle.';
+        break;
+      case 'Too Cold':
+      case 'Too Warm':
+        message =
+            'Temperature is outside your comfort zone. Consider taking alternative transport or dressing appropriately.';
+        break;
+      case 'Wind Speed':
+      case 'Wind Direction':
+        message =
+            'Wind conditions are too strong. Consider taking an alternative route.';
+        break;
+      case 'Rain':
+      case 'Precipitation':
+        message =
+            'Rain is expected. Consider carrying rainwear or waterproof gear.';
+        break;
+      default:
+        message =
+            'Weather condition is outside your preferred range. Be careful.';
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(t('$metricName Alert')),
-        content: Text(
-          metricName == 'Humidity'
-              ? t(
-                  'Humidity is above your set range. Consider bringing an extra water bottle.',
-                )
-              : t(
-                  '$metricName is outside your preferred range. Weather condition is bad, be careful.',
-                ),
-        ),
+        content: Text(t(message)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
