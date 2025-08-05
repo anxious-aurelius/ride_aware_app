@@ -1,6 +1,6 @@
 import logging
 from models.feedback import Feedback
-from services.db import feedback_collection
+from services.db import feedback_collection, ride_history_collection
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,11 @@ async def save_feedback(feedback: Feedback) -> dict:
     result = await feedback_collection.update_one(
         {"threshold_id": threshold_id}, {"$set": data}, upsert=True
     )
+    if data.get("summary"):
+        await ride_history_collection.update_one(
+            {"device_id": device_id, "threshold_id": threshold_id},
+            {"$set": {"feedback": data["summary"]}},
+        )
     logger.debug(
         "Feedback upserted for threshold %s: modified=%s upserted_id=%s", threshold_id,
         getattr(result, "modified_count", None), getattr(result, "upserted_id", None)

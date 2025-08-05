@@ -83,8 +83,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     final now = DateTime.now();
     final end = _prefs!.commuteWindows.endLocal;
     final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    final feedbackTime = todayEnd.add(const Duration(hours: 1));
-    return now.isAfter(feedbackTime);
+    final expiry = todayEnd.add(const Duration(hours: 1));
+    return now.isAfter(todayEnd) && now.isBefore(expiry);
   }
 
   Future<void> _saveRideHistoryIfCompleted() async {
@@ -100,12 +100,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     final entry = RideHistoryEntry(
       thresholdId: thresholdId,
-      date: DateTime(now.year, now.month, now.day),
+      date: DateTime.now().toUtc(),
       startTime: _prefs!.commuteWindows.startLocal,
       endTime: _prefs!.commuteWindows.endLocal,
       status: result.status,
       summary: result.summary,
-      feedback: _feedbackSummary,
+      feedback: null,
     );
     try {
       await _apiService.saveRideHistoryEntry(entry);
