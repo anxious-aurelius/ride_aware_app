@@ -38,8 +38,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _loadPrefs() async {
     final p = await _prefsService.loadPreferences();
+    final feedbackGiven = await _prefsService.isEveningFeedbackGivenToday();
     setState(() {
       _prefs = p;
+      _eveningFeedbackGiven = feedbackGiven;
     });
   }
 
@@ -57,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       _eveningFeedbackGiven = false;
       _feedbackSummary = 'You did a great job!';
       _lastReset = now;
+      _prefsService.clearEveningFeedbackGiven();
     }
   }
 
@@ -158,6 +161,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                               _feedbackSummary = result['summary'] as String;
                               _eveningFeedbackGiven = true;
                             });
+                            _prefsService
+                                .setEveningFeedbackGiven(DateTime.now());
                           }
                         },
                 ),
