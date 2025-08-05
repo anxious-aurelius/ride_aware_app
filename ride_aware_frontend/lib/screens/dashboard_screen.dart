@@ -3,6 +3,9 @@ import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:active_commuter_support/services/preferences_service.dart';
 import 'package:active_commuter_support/widgets/upcoming_commute_alert.dart';
 import 'package:active_commuter_support/screens/post_ride_feedback_screen.dart';
+import 'package:active_commuter_support/screens/history_screen.dart';
+import 'package:active_commuter_support/services/api_service.dart';
+import 'package:active_commuter_support/models/ride_history_entry.dart';
 import 'package:active_commuter_support/models/user_preferences.dart';
 import 'package:flutter/material.dart';
 
@@ -17,12 +20,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     with WidgetsBindingObserver {
   final NotificationService _notificationService = NotificationService();
   final PreferencesService _prefsService = PreferencesService();
+  final ApiService _apiService = ApiService();
 
   UserPreferences? _prefs;
   String _feedbackSummary = 'You did a great job!';
   bool _eveningFeedbackGiven = false;
   DateTime _lastReset = DateTime.now();
   bool _feedbackNotificationShown = false;
+  bool _historySaved = false;
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
@@ -62,6 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       _lastReset = now;
       _prefsService.clearEveningFeedbackGiven();
       _feedbackNotificationShown = false;
+      _historySaved = false;
     }
   }
 
@@ -81,9 +87,34 @@ class _DashboardScreenState extends State<DashboardScreen>
     return now.isAfter(feedbackTime);
   }
 
+  Future<void> _saveRideHistoryIfCompleted() async {
+    if (_prefs == null || _historySaved) return;
+    final now = DateTime.now();
+    final end = _prefs!.commuteWindows.endLocal;
+    final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
+    if (!now.isAfter(todayEnd)) return;
+    final result = _alertKey.currentState?.result;
+    if (result == null) return;
+    final entry = RideHistoryEntry(
+      date: DateTime(now.year, now.month, now.day),
+      startTime: _prefs!.commuteWindows.startLocal,
+      endTime: _prefs!.commuteWindows.endLocal,
+      status: result.status,
+      summary: result.summary,
+      feedback: _feedbackSummary,
+    );
+    try {
+      await _apiService.saveRideHistoryEntry(entry);
+      _historySaved = true;
+    } catch (_) {
+      // Ignore network errors for now
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     _resetFlagsIfNewDay();
+    _saveRideHistoryIfCompleted();
     final showFeedback = _shouldShowFeedbackCard();
     if (showFeedback && !_eveningFeedbackGiven && !_feedbackNotificationShown) {
       _notificationService.showFeedbackNotification();
@@ -178,6 +209,23 @@ class _DashboardScreenState extends State<DashboardScreen>
             UpcomingCommuteAlert(
               key: _alertKey,
               feedbackSummary: _feedbackSummary,
+            ),
+
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                leading: const Icon(Icons.history),
+                title: const Text('Ride History'),
+                subtitle: const Text('View your last 30 days of rides'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HistoryScreen(),
+                    ),
+                  );
+                },
+              ),
             ),
 
             // Notification Status Card

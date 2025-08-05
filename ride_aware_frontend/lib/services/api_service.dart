@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_preferences.dart';
 import '../models/route_model.dart'; // Import RouteModel
+import '../models/ride_history_entry.dart';
 import 'device_id_service.dart';
 
 class ApiService {
@@ -218,6 +219,60 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) {
         print('❌ Feedback submission error: $e');
+      }
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Save a ride history entry
+  Future<void> saveRideHistoryEntry(RideHistoryEntry entry) async {
+    try {
+      final response = await _postWithDeviceId('/rideHistory', entry.toJson());
+      if (kDebugMode) {
+        print('📡 Ride History Response: ${response.statusCode}');
+        if (response.body.isNotEmpty) {
+          print('   Response Body: ${response.body}');
+        }
+      }
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to save ride history: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Ride history save error: $e');
+      }
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Fetch ride history for the last [lastDays] days
+  Future<List<RideHistoryEntry>> fetchRideHistory({int lastDays = 30}) async {
+    try {
+      final String? deviceId = await _deviceIdService.getParticipantIdHash();
+      if (deviceId == null) {
+        throw Exception('Participant ID not available. Cannot fetch history.');
+      }
+      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
+        'device_id': deviceId,
+        'lastDays': lastDays.toString(),
+      });
+      final response = await http.get(uri, headers: await _getHeaders());
+      if (kDebugMode) {
+        print('📡 Ride History Fetch: ${response.statusCode}');
+        if (response.body.isNotEmpty) {
+          print('   Response Body: ${response.body}');
+        }
+      }
+      if (response.statusCode != 200) {
+        throw Exception('Failed to fetch ride history: ${response.statusCode}');
+      }
+      final data = jsonDecode(response.body) as List;
+      return data
+          .map((e) => RideHistoryEntry.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Ride history fetch error: $e');
       }
       throw Exception('Network error: $e');
     }

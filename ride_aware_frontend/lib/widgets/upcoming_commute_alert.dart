@@ -68,6 +68,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   TimeOfDay? _routeStartTime;
   TimeOfDay? _routeEndTime;
 
+  CommuteAlertResult? get result => _vm.result;
+
   @override
   void initState() {
     super.initState();
