@@ -8,6 +8,7 @@ class PreferencesService {
   static const String _preferencesKey = 'user_preferences';
   static const String _thresholdsSetKey = 'thresholdsSet';
   static const String _prefsVersionKey = 'prefsVersion';
+  static const String _lastEveningFeedbackKey = 'lastEveningFeedback';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
 
@@ -87,5 +88,28 @@ class PreferencesService {
   Future<bool> hasStoredPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey(_preferencesKey);
+  }
+
+  Future<void> setEveningFeedbackGiven(DateTime date) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _lastEveningFeedbackKey, date.toIso8601String());
+  }
+
+  Future<bool> isEveningFeedbackGivenToday() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateStr = prefs.getString(_lastEveningFeedbackKey);
+    if (dateStr == null) return false;
+    final date = DateTime.tryParse(dateStr);
+    if (date == null) return false;
+    final now = DateTime.now();
+    return now.year == date.year &&
+        now.month == date.month &&
+        now.day == date.day;
+  }
+
+  Future<void> clearEveningFeedbackGiven() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_lastEveningFeedbackKey);
   }
 }
