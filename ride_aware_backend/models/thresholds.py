@@ -1,10 +1,12 @@
-from datetime import date
 from pydantic import BaseModel, Field, condecimal, StringConstraints, ConfigDict
 from typing import Annotated, Optional
 
 TimeStr = Annotated[str, StringConstraints(pattern=r"^\d{2}:\d{2}$")]
+DateStr = Annotated[str, StringConstraints(pattern=r"^\d{4}-\d{2}-\d{2}$")]
 
 class WeatherLimits(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     max_wind_speed: condecimal(gt=0, le=200)
     max_rain_intensity: condecimal(ge=0, le=50)
     max_humidity: condecimal(gt=0, le=100)
@@ -17,18 +19,22 @@ class WeatherLimits(BaseModel):
     max_uv_index: Optional[condecimal(gt=0, le=11)] = None
 
 class OfficeLocation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     latitude: condecimal(gt=-90, le=90, decimal_places=6)
     longitude: condecimal(gt=-180, le=180, decimal_places=6)
 
 class CommuteWindows(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     start: TimeStr = Field(alias="morning")
     end: TimeStr = Field(alias="evening")
 
 
 class Thresholds(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     device_id: str = Field(..., min_length=6, max_length=64)
-    date: date
+    date: DateStr
     start_time: TimeStr
     weather_limits: WeatherLimits
     office_location: OfficeLocation

@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from models.thresholds import Thresholds
 from controllers.threshold_controller import upsert_threshold, get_thresholds
 
@@ -10,7 +10,9 @@ router = APIRouter(prefix="/thresholds", tags=["Thresholds"])
 
 @router.post("", include_in_schema=False)
 @router.post("/")
-async def set_threshold(threshold: Thresholds):
+async def set_threshold(threshold: Thresholds, request: Request):
+    body = await request.json()
+    logger.debug("Incoming payload: %s", body)
     logger.info(
         "Setting thresholds for device %s on %s at %s",
         threshold.device_id,
