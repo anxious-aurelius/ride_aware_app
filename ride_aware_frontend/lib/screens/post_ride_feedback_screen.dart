@@ -44,10 +44,15 @@ class _PostRideFeedbackScreenState extends State<PostRideFeedbackScreen> {
       body: FutureBuilder<List<String>>(
         future: _violationsFuture,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final v = snapshot.data!;
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text('Failed to load feedback questions'),
+            );
+          }
+          final v = snapshot.data ?? [];
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
