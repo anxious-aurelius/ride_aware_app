@@ -33,7 +33,12 @@ class _StatusInfo {
 }
 
 class UpcomingCommuteAlert extends StatefulWidget {
-  const UpcomingCommuteAlert({super.key});
+  final String feedbackSummary;
+
+  const UpcomingCommuteAlert({
+    super.key,
+    this.feedbackSummary = 'You did a great job!',
+  });
 
   @override
   State<UpcomingCommuteAlert> createState() => _UpcomingCommuteAlertState();
@@ -171,10 +176,14 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                         children: [
                           const Icon(Icons.thumb_up, color: Colors.green),
                           const SizedBox(width: 8),
-                          Text(
-                            'You did a great job!',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              widget.feedbackSummary.isNotEmpty
+                                  ? widget.feedbackSummary
+                                  : 'You did a great job!',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],

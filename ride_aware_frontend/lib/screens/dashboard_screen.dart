@@ -150,7 +150,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
 
             // Commute Status Panel
-            const UpcomingCommuteAlert(),
+            UpcomingCommuteAlert(feedbackSummary: _feedbackSummary),
 
             // Notification Status Card
             Card(
