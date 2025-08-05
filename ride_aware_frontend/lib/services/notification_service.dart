@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
 
 class NotificationService {
@@ -10,6 +11,8 @@ class NotificationService {
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
+  final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   String? _fcmToken;
 
@@ -35,6 +38,13 @@ class NotificationService {
       }
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        // Initialize local notifications
+        const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+        const iosSettings = DarwinInitializationSettings();
+        const initSettings = InitializationSettings(
+            android: androidSettings, iOS: iosSettings);
+        await _localNotificationsPlugin.initialize(initSettings);
+
         // Get the FCM token
         await _getFCMToken();
 
@@ -136,6 +146,24 @@ class NotificationService {
 
   /// Get current FCM token
   String? get fcmToken => _fcmToken;
+
+  /// Show a local notification indicating feedback is available
+  Future<void> showFeedbackNotification() async {
+    const androidDetails = AndroidNotificationDetails(
+      'feedback_channel',
+      'Ride Feedback',
+      channelDescription: 'Notifications for ride feedback availability',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const notificationDetails = NotificationDetails(android: androidDetails);
+    await _localNotificationsPlugin.show(
+      0,
+      'Ride feedback ready',
+      'Please provide feedback for your last ride.',
+      notificationDetails,
+    );
+  }
 
   /// Check if notifications are enabled
   Future<bool> areNotificationsEnabled() async {
