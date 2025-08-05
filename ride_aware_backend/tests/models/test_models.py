@@ -3,7 +3,6 @@ from pydantic import ValidationError
 
 from models.fcm import FCMDeviceModel
 from models.route import RouteModel, GeoPoint
-from datetime import date
 from models.thresholds import Thresholds, WeatherLimits, OfficeLocation
 
 
@@ -42,7 +41,7 @@ def test_route_model_invalid_latitude():
 def test_thresholds_model_valid():
     thresholds = Thresholds(
         device_id="device123",
-        date=date(2024, 1, 1),
+        date="2024-01-01",
         start_time="08:00",
         weather_limits=WeatherLimits(
             max_wind_speed=10,
@@ -63,7 +62,7 @@ def test_thresholds_model_invalid_device_id():
     with pytest.raises(ValidationError):
         Thresholds(
             device_id="dev",
-            date=date(2024, 1, 1),
+            date="2024-01-01",
             start_time="08:00",
             weather_limits=WeatherLimits(
                 max_wind_speed=10,

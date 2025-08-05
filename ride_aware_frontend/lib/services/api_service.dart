@@ -24,11 +24,20 @@ class ApiService {
         );
       }
 
+      if (!preferences.isValid) {
+        if (kDebugMode) {
+          print('❌ Invalid preferences: ${jsonEncode(preferences.toJson())}');
+        }
+        throw Exception('Invalid threshold values');
+      }
+
       final requestBody = {
-        ...preferences.toJson(),
         'device_id': deviceId,
         'date': DateTime.now().toIso8601String().split('T').first,
         'start_time': preferences.commuteWindows.start,
+        'weather_limits': preferences.weatherLimits.toJson(),
+        'office_location': preferences.officeLocation.toJson(),
+        'commute_windows': preferences.commuteWindows.toJson(),
       };
 
       // Debug messages
