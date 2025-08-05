@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class RideHistoryEntry {
+  final String thresholdId;
   final DateTime date;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
@@ -9,6 +10,7 @@ class RideHistoryEntry {
   final String? feedback;
 
   RideHistoryEntry({
+    required this.thresholdId,
     required this.date,
     required this.startTime,
     required this.endTime,
@@ -19,6 +21,7 @@ class RideHistoryEntry {
 
   factory RideHistoryEntry.fromJson(Map<String, dynamic> json) {
     return RideHistoryEntry(
+      thresholdId: json['threshold_id'] as String,
       date: DateTime.parse(json['date'] as String),
       startTime: _parseTime(json['start_time'] as String),
       endTime: _parseTime(json['end_time'] as String),
@@ -29,6 +32,7 @@ class RideHistoryEntry {
   }
 
   Map<String, dynamic> toJson() => {
+        'threshold_id': thresholdId,
         'date': date.toIso8601String().split('T').first,
         'start_time': _formatTime(startTime),
         'end_time': _formatTime(endTime),

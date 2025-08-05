@@ -9,6 +9,7 @@ class PreferencesService {
   static const String _thresholdsSetKey = 'thresholdsSet';
   static const String _prefsVersionKey = 'prefsVersion';
   static const String _lastEveningFeedbackKey = 'lastEveningFeedback';
+  static const String _currentThresholdIdKey = 'currentThresholdId';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
 
@@ -82,6 +83,7 @@ class PreferencesService {
     await prefs.remove(_preferencesKey);
     await prefs.remove(_thresholdsSetKey);
     await prefs.remove(_prefsVersionKey);
+    await prefs.remove(_currentThresholdIdKey);
   }
 
   // Check if preferences exist in storage
@@ -111,5 +113,15 @@ class PreferencesService {
   Future<void> clearEveningFeedbackGiven() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_lastEveningFeedbackKey);
+  }
+
+  Future<void> saveCurrentThresholdId(String thresholdId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_currentThresholdIdKey, thresholdId);
+  }
+
+  Future<String?> getCurrentThresholdId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_currentThresholdIdKey);
   }
 }
