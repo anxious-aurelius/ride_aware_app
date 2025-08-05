@@ -1,6 +1,8 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../models/user_preferences.dart';
 import 'api_service.dart';
 
 class NotificationService {
@@ -10,6 +12,8 @@ class NotificationService {
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   String? _fcmToken;
 
@@ -54,6 +58,9 @@ class NotificationService {
           print('❌ Notification permission denied');
         }
       }
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initSettings = InitializationSettings(android: androidInit);
+      await _localNotifications.initialize(initSettings);
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error initializing notifications: $e');
@@ -149,5 +156,40 @@ class NotificationService {
     NotificationSettings settings = await _firebaseMessaging
         .requestPermission();
     return settings.authorizationStatus == AuthorizationStatus.authorized;
+  }
+
+  Future<void> scheduleFeedbackNotifications(CommuteWindows windows) async {
+    final now = DateTime.now();
+    final morning = windows.morningLocal;
+    final evening = windows.eveningLocal;
+    final morningTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      morning.hour,
+      morning.minute,
+    );
+    final eveningTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      evening.hour,
+      evening.minute,
+    );
+    await _scheduleLocal(1, morningTime);
+    await _scheduleLocal(2, eveningTime);
+  }
+
+  Future<void> _scheduleLocal(int id, DateTime time) async {
+    await _localNotifications.schedule(
+      id,
+      'Your commute is over',
+      'Tap to give feedback on your ride.',
+      time,
+      const NotificationDetails(
+        android: AndroidNotificationDetails('feedback', 'Feedback'),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
   }
 }

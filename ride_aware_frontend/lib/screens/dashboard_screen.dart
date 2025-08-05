@@ -1,6 +1,9 @@
 import 'package:active_commuter_support/screens/preferences_screen.dart';
 import 'package:active_commuter_support/services/notification_service.dart';
+import 'package:active_commuter_support/services/preferences_service.dart';
 import 'package:active_commuter_support/widgets/upcoming_commute_alert.dart';
+import 'package:active_commuter_support/screens/post_ride_feedback_screen.dart';
+import 'package:active_commuter_support/models/user_preferences.dart';
 import 'package:flutter/material.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -12,9 +15,62 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final NotificationService _notificationService = NotificationService();
+  final PreferencesService _prefsService = PreferencesService();
+
+  UserPreferences? _prefs;
+  String _feedbackSummary = 'You did a great job!';
+  bool _morningFeedbackGiven = false;
+  bool _eveningFeedbackGiven = false;
+  DateTime _lastReset = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    final p = await _prefsService.loadPreferences();
+    await _notificationService.scheduleFeedbackNotifications(p.commuteWindows);
+    setState(() {
+      _prefs = p;
+    });
+  }
+
+  void _resetFlagsIfNewDay() {
+    final now = DateTime.now();
+    if (now.year != _lastReset.year ||
+        now.month != _lastReset.month ||
+        now.day != _lastReset.day) {
+      _morningFeedbackGiven = false;
+      _eveningFeedbackGiven = false;
+      _feedbackSummary = 'You did a great job!';
+      _lastReset = now;
+    }
+  }
+
+  String? _pendingFeedback() {
+    if (_prefs == null) return null;
+    final now = TimeOfDay.now();
+    final morning = _prefs!.commuteWindows.morningLocal;
+    final evening = _prefs!.commuteWindows.eveningLocal;
+    bool after(TimeOfDay a, TimeOfDay b) =>
+        a.hour > b.hour || (a.hour == b.hour && a.minute >= b.minute);
+    bool before(TimeOfDay a, TimeOfDay b) =>
+        a.hour < b.hour || (a.hour == b.hour && a.minute < b.minute);
+    if (!_morningFeedbackGiven && after(now, morning) && before(now, evening)) {
+      return 'morning';
+    }
+    if (!_eveningFeedbackGiven && after(now, evening)) {
+      return 'evening';
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
+    _resetFlagsIfNewDay();
+    final pending = _pendingFeedback();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -67,6 +123,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Commute Status Panel
             const UpcomingCommuteAlert(),
+
+            if (pending != null)
+              Card(
+                margin: const EdgeInsets.all(16),
+                child: ListTile(
+                  leading: const Icon(Icons.feedback, color: Colors.orange),
+                  title: const Text('Feedback available for your last ride'),
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PostRideFeedbackScreen(commuteTime: pending),
+                      ),
+                    );
+                    if (result != null) {
+                      setState(() {
+                        _feedbackSummary = result['summary'] as String;
+                        if (result['commute'] == 'morning') {
+                          _morningFeedbackGiven = true;
+                        } else {
+                          _eveningFeedbackGiven = true;
+                        }
+                      });
+                    }
+                  },
+                ),
+              ),
 
             // Notification Status Card
             Card(
@@ -138,27 +222,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // Coming Soon Card
-            const Card(
-              margin: EdgeInsets.all(16),
+            // Feedback Summary Card
+            Card(
+              margin: const EdgeInsets.all(16),
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Icon(Icons.construction, size: 48),
-                    SizedBox(height: 8),
+                    const Icon(Icons.insights, size: 48),
+                    const SizedBox(height: 8),
                     Text(
-                      'More Features Coming Soon',
-                      style: TextStyle(
+                      _feedbackSummary,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Detailed weather maps, route alternatives, and historical data',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
