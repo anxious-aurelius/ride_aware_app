@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../viewmodels/upcoming_commute_view_model.dart';
 import '../utils/parsing.dart';
 import '../utils/i18n.dart';
 import '../models/user_preferences.dart';
+import '../services/preferences_service.dart';
+import '../services/api_service.dart';
 
 // Helper classes defined outside the widget
 class _WeatherMetric {
@@ -38,6 +41,23 @@ class UpcomingCommuteAlert extends StatefulWidget {
 
 class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   final UpcomingCommuteViewModel _vm = UpcomingCommuteViewModel();
+  final PreferencesService _preferencesService = PreferencesService();
+  final ApiService _apiService = ApiService();
+
+  final TextEditingController _windSpeedController = TextEditingController();
+  final TextEditingController _rainIntensityController = TextEditingController();
+  final TextEditingController _humidityController = TextEditingController();
+  final TextEditingController _minTemperatureController = TextEditingController();
+  final TextEditingController _maxTemperatureController = TextEditingController();
+
+  double _headwindSensitivity = 20.0;
+  double _crosswindSensitivity = 15.0;
+
+  final GlobalKey<FormState> _thresholdFormKey = GlobalKey<FormState>();
+  bool _showThresholdForm = false;
+  bool _isSaving = false;
+
+  UserPreferences? _prefs;
 
   @override
   void initState() {
@@ -47,13 +67,26 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     }
     _vm.addListener(_onUpdate);
     _vm.load();
+    _loadPrefs();
   }
 
   void _onUpdate() => setState(() {});
 
+  Future<void> _loadPrefs() async {
+    final prefs = await _preferencesService.loadPreferences();
+    setState(() {
+      _prefs = prefs;
+    });
+  }
+
   @override
   void dispose() {
     _vm.removeListener(_onUpdate);
+    _windSpeedController.dispose();
+    _rainIntensityController.dispose();
+    _humidityController.dispose();
+    _minTemperatureController.dispose();
+    _maxTemperatureController.dispose();
     super.dispose();
   }
 
@@ -74,6 +107,20 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     final result = _vm.result!;
     final limits = result.limits;
     final status = _statusInfo(result.status);
+
+    bool showPostCommuteCard = false;
+    if (_prefs != null) {
+      final now = DateTime.now();
+      final morning = _prefs!.commuteWindows.morningLocal;
+      final todayMorningTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        morning.hour,
+        morning.minute,
+      );
+      showPostCommuteCard = now.isAfter(todayMorningTime);
+    }
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -99,6 +146,53 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             _buildWeatherMetrics(theme, result, limits),
             if (result.issues.isNotEmpty)
               _buildIssuesSection(result, status.color, theme),
+            if (showPostCommuteCard) ...[
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.green.withOpacity(0.15),
+                        Colors.green.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.thumb_up, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Text(
+                            'You did a great job!',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'If you want to adjust your thresholds for next time, tap below:',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      !_showThresholdForm
+                          ? _buildAdjustThresholdsCTA(theme)
+                          : _buildThresholdForm(theme),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             _buildActionSection(theme),
           ],
         ),
@@ -230,11 +324,11 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     if (minTemp < limits.minTemperature) {
       tempCaption = 'Too Cold';
       tempIcon = Icons.ac_unit;
-      tempColor = Colors.blue;
+      tempColor = Colors.red;
     } else if (maxTemp > limits.maxTemperature) {
       tempCaption = 'Too Warm';
       tempIcon = Icons.local_fire_department;
-      tempColor = Colors.orange;
+      tempColor = Colors.red;
     } else {
       tempCaption = 'Comfortable';
       tempIcon = Icons.thermostat;
@@ -446,19 +540,37 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   void _showConditionWarning(BuildContext context, String metricName) {
+    String message;
+    switch (metricName) {
+      case 'Humidity':
+        message =
+            'Humidity is above your set range. Consider bringing an extra water bottle.';
+        break;
+      case 'Too Cold':
+      case 'Too Warm':
+        message =
+            'Temperature is outside your comfort zone. Consider taking alternative transport or dressing appropriately.';
+        break;
+      case 'Wind Speed':
+      case 'Wind Direction':
+        message =
+            'Wind conditions are too strong. Consider taking an alternative route.';
+        break;
+      case 'Rain':
+      case 'Precipitation':
+        message =
+            'Rain is expected. Consider carrying rainwear or waterproof gear.';
+        break;
+      default:
+        message =
+            'Weather condition is outside your preferred range. Be careful.';
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(t('$metricName Alert')),
-        content: Text(
-          metricName == 'Humidity'
-              ? t(
-                  'Humidity is above your set range. Consider bringing an extra water bottle.',
-                )
-              : t(
-                  '$metricName is outside your preferred range. Weather condition is bad, be careful.',
-                ),
-        ),
+        content: Text(t(message)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -467,6 +579,248 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         ],
       ),
     );
+  }
+
+  Widget _buildAdjustThresholdsCTA(ThemeData theme) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _showThresholdForm = true;
+        });
+        _initThresholdControllers();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colorScheme.primary),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.tune, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Adjust Thresholds',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThresholdForm(ThemeData theme) {
+    return Form(
+      key: _thresholdFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildNumberField(
+            controller: _windSpeedController,
+            label: 'Max Wind Speed (m/s)',
+            min: 0,
+            max: 200,
+          ),
+          const SizedBox(height: 12),
+          _buildNumberField(
+            controller: _rainIntensityController,
+            label: 'Max Rain Intensity (mm/hr)',
+            min: 0,
+            max: 50,
+          ),
+          const SizedBox(height: 12),
+          _buildNumberField(
+            controller: _humidityController,
+            label: 'Max Humidity (%)',
+            min: 0,
+            max: 100,
+          ),
+          const SizedBox(height: 12),
+          _buildNumberField(
+            controller: _minTemperatureController,
+            label: 'Min Temperature (°C)',
+            min: -50,
+            max: 60,
+          ),
+          const SizedBox(height: 12),
+          _buildNumberField(
+            controller: _maxTemperatureController,
+            label: 'Max Temperature (°C)',
+            min: -50,
+            max: 60,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Headwind Sensitivity (${_headwindSensitivity.toStringAsFixed(0)} km/h)',
+            style: theme.textTheme.bodyMedium,
+          ),
+          Slider(
+            value: _headwindSensitivity,
+            min: 0,
+            max: 50,
+            divisions: 50,
+            label: _headwindSensitivity.toStringAsFixed(0),
+            onChanged: (v) => setState(() => _headwindSensitivity = v),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Crosswind Sensitivity (${_crosswindSensitivity.toStringAsFixed(0)} km/h)',
+            style: theme.textTheme.bodyMedium,
+          ),
+          Slider(
+            value: _crosswindSensitivity,
+            min: 0,
+            max: 50,
+            divisions: 50,
+            label: _crosswindSensitivity.toStringAsFixed(0),
+            onChanged: (v) => setState(() => _crosswindSensitivity = v),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: _isSaving
+                    ? null
+                    : () {
+                        setState(() {
+                          _showThresholdForm = false;
+                        });
+                      },
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: _isSaving ? null : _saveThresholds,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Save'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNumberField({
+    required TextEditingController controller,
+    required String label,
+    required double min,
+    required double max,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(
+        decimal: true,
+        signed: true,
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^-?\\d*\\.?\\d*')),
+      ],
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'This field is required';
+        }
+        final number = double.tryParse(value);
+        if (number == null) {
+          return 'Please enter a valid number';
+        }
+        if (number < min || number > max) {
+          return 'Value must be between $min and $max';
+        }
+        if (controller == _minTemperatureController) {
+          final maxTemp = double.tryParse(_maxTemperatureController.text);
+          if (maxTemp != null && number > maxTemp) {
+            return 'Min temperature must be ≤ max temperature';
+          }
+        }
+        if (controller == _maxTemperatureController) {
+          final minTemp = double.tryParse(_minTemperatureController.text);
+          if (minTemp != null && number < minTemp) {
+            return 'Max temperature must be ≥ min temperature';
+          }
+        }
+        return null;
+      },
+    );
+  }
+
+  Future<void> _initThresholdControllers() async {
+    final prefs = await _preferencesService.loadPreferences();
+    setState(() {
+      _windSpeedController.text = prefs.weatherLimits.maxWindSpeed.toString();
+      _rainIntensityController.text =
+          prefs.weatherLimits.maxRainIntensity.toString();
+      _humidityController.text = prefs.weatherLimits.maxHumidity.toString();
+      _minTemperatureController.text =
+          prefs.weatherLimits.minTemperature.toString();
+      _maxTemperatureController.text =
+          prefs.weatherLimits.maxTemperature.toString();
+      _headwindSensitivity = prefs.weatherLimits.headwindSensitivity;
+      _crosswindSensitivity = prefs.weatherLimits.crosswindSensitivity;
+    });
+  }
+
+  Future<void> _saveThresholds() async {
+    setState(() {
+      _isSaving = true;
+    });
+    if (!_thresholdFormKey.currentState!.validate()) {
+      setState(() {
+        _isSaving = false;
+      });
+      return;
+    }
+    try {
+      final newLimits = WeatherLimits(
+        maxWindSpeed: double.parse(_windSpeedController.text),
+        maxRainIntensity: double.parse(_rainIntensityController.text),
+        maxHumidity: double.parse(_humidityController.text),
+        minTemperature: double.parse(_minTemperatureController.text),
+        maxTemperature: double.parse(_maxTemperatureController.text),
+        headwindSensitivity: _headwindSensitivity,
+        crosswindSensitivity: _crosswindSensitivity,
+      );
+
+      final prefs = await _preferencesService.loadPreferences();
+      final updatedPrefs = prefs.copyWith(weatherLimits: newLimits);
+
+      await _apiService.submitThresholds(updatedPrefs);
+      await _preferencesService.savePreferencesWithDeviceId(updatedPrefs);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Thresholds updated!')),
+        );
+      }
+
+      await _vm.load();
+
+      setState(() {
+        _isSaving = false;
+        _showThresholdForm = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update thresholds: $e')),
+        );
+      }
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
 
   Widget _buildIssuesSection(
