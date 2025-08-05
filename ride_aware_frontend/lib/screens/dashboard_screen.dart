@@ -95,7 +95,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!now.isAfter(todayEnd)) return;
     final result = _alertKey.currentState?.result;
     if (result == null) return;
+    final thresholdId = await _prefsService.getCurrentThresholdId();
+    if (thresholdId == null) return;
+
     final entry = RideHistoryEntry(
+      thresholdId: thresholdId,
       date: DateTime(now.year, now.month, now.day),
       startTime: _prefs!.commuteWindows.startLocal,
       endTime: _prefs!.commuteWindows.endLocal,

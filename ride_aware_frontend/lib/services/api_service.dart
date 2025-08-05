@@ -5,15 +5,17 @@ import '../models/user_preferences.dart';
 import '../models/route_model.dart'; // Import RouteModel
 import '../models/ride_history_entry.dart';
 import 'device_id_service.dart';
+import 'preferences_service.dart';
 
 class ApiService {
   // TODO: Replace with actual API base URL
   static const String baseUrl = 'http://81.17.60.64:8888';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
+  final PreferencesService _preferencesService = PreferencesService();
 
   /// Submit user preferences/thresholds to the API
-  Future<void> submitThresholds(UserPreferences preferences) async {
+  Future<String?> submitThresholds(UserPreferences preferences) async {
     try {
       final String? deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
@@ -22,8 +24,12 @@ class ApiService {
         );
       }
 
-      // Create request body with device_id included
-      final requestBody = {...preferences.toJson(), 'device_id': deviceId};
+      final requestBody = {
+        ...preferences.toJson(),
+        'device_id': deviceId,
+        'date': DateTime.now().toIso8601String().split('T').first,
+        'start_time': preferences.commuteWindows.start,
+      };
 
       // Debug messages
       if (kDebugMode) {
@@ -48,12 +54,19 @@ class ApiService {
         }
       }
 
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception('Failed to submit thresholds: ${response.statusCode}');
       }
 
-      // TODO: Handle response data if needed
-      // final responseData = jsonDecode(response.body);
+      String? thresholdId;
+      if (response.body.isNotEmpty) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        thresholdId = data['upserted_id'] as String? ?? data['threshold_id'] as String?;
+        if (thresholdId != null) {
+          await _preferencesService.saveCurrentThresholdId(thresholdId);
+        }
+      }
+      return thresholdId;
     } catch (e) {
       // Wrap error debug prints in kDebugMode
       if (kDebugMode) {
@@ -206,7 +219,14 @@ class ApiService {
   /// Submit ride feedback to the API
   Future<void> submitFeedback(Map<String, dynamic> feedback) async {
     try {
-      final response = await _postWithDeviceId('/feedback', feedback);
+      final thresholdId = await _preferencesService.getCurrentThresholdId();
+      if (thresholdId == null) {
+        throw Exception('Threshold ID not available. Cannot submit feedback.');
+      }
+      final response = await _postWithDeviceId('/feedback', {
+        ...feedback,
+        'threshold_id': thresholdId,
+      });
       if (kDebugMode) {
         print('📡 Feedback Response: ${response.statusCode}');
         if (response.body.isNotEmpty) {
