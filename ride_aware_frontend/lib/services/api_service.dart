@@ -202,6 +202,27 @@ class ApiService {
     }
   }
 
+  /// Submit ride feedback to the API
+  Future<void> submitFeedback(Map<String, dynamic> feedback) async {
+    try {
+      final response = await _postWithDeviceId('/feedback', feedback);
+      if (kDebugMode) {
+        print('📡 Feedback Response: ${response.statusCode}');
+        if (response.body.isNotEmpty) {
+          print('   Response Body: ${response.body}');
+        }
+      }
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to submit feedback: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Feedback submission error: $e');
+      }
+      throw Exception('Network error: $e');
+    }
+  }
+
   /// Get standard headers for API requests
   Future<Map<String, String>> _getHeaders() async {
     final String? deviceId = await _deviceIdService.getParticipantIdHash();

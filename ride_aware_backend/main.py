@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from routes import thresholds, routes, fcm, commute_status, forecast
+from routes import thresholds, routes, fcm, commute_status, forecast, feedback
 
 
 logging.basicConfig(
@@ -16,3 +16,4 @@ app.include_router(routes.router)
 app.include_router(fcm.router)
 app.include_router(commute_status.router)
 app.include_router(forecast.router)
+app.include_router(feedback.router)
