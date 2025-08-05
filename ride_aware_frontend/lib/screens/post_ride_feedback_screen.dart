@@ -48,8 +48,25 @@ class _PostRideFeedbackScreenState extends State<PostRideFeedbackScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return const Center(
-              child: Text('Failed to load feedback questions'),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Failed to load feedback questions: ${snapshot.error}',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _violationsFuture = _loadViolations();
+                      });
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             );
           }
           final v = snapshot.data ?? [];
