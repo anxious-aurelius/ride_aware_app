@@ -2,6 +2,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import '../models/user_preferences.dart';
 import 'api_service.dart';
 
@@ -61,6 +63,7 @@ class NotificationService {
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const initSettings = InitializationSettings(android: androidInit);
       await _localNotifications.initialize(initSettings);
+      tz.initializeTimeZones();
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error initializing notifications: $e');
@@ -181,15 +184,17 @@ class NotificationService {
   }
 
   Future<void> _scheduleLocal(int id, DateTime time) async {
-    await _localNotifications.schedule(
+    await _localNotifications.zonedSchedule(
       id,
       'Your commute is over',
       'Tap to give feedback on your ride.',
-      time,
+      tz.TZDateTime.from(time, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails('feedback', 'Feedback'),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }
