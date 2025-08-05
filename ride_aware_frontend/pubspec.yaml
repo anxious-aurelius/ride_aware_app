@@ -43,6 +43,7 @@ dependencies:
   firebase_core: ^2.24.0      # Add Firebase Core
   firebase_messaging: ^14.7.0 # Add Firebase Messaging
   flutter_local_notifications: ^17.1.2 # For local notifications
+  table_calendar: ^3.0.9
 
 
   # The following adds the Cupertino Icons font to your application.
