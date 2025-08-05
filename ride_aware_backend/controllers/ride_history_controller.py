@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from fastapi import HTTPException
@@ -6,6 +7,7 @@ from models.ride_history import RideHistoryEntry
 from services.db import ride_history_collection
 
 logger = logging.getLogger(__name__)
+
 
 async def save_ride(entry: RideHistoryEntry) -> dict:
     try:
@@ -18,8 +20,23 @@ async def save_ride(entry: RideHistoryEntry) -> dict:
         )
         return {"status": "ok"}
     except PyMongoError as e:
-        logger.error("Database error saving ride history for %s: %s", entry.device_id, e)
+        logger.error(
+            "Database error saving ride history for %s: %s", entry.device_id, e
+        )
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+async def save_ride_after_delay(
+    entry: RideHistoryEntry, delay_seconds: int = 60
+) -> None:
+    """Persist a ride to the database after a delay.
+
+    This allows a ride to be submitted immediately while deferring the
+    insertion so that it appears in ride history after ``delay_seconds``.
+    """
+    await asyncio.sleep(delay_seconds)
+    await save_ride(entry)
+
 
 async def fetch_rides(device_id: str, last_days: int = 30):
     since = datetime.utcnow().date() - timedelta(days=last_days)
