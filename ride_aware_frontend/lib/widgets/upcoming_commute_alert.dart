@@ -12,6 +12,7 @@ class _WeatherMetric {
   final String description;
   final String subDescription;
   final Color color;
+  final VoidCallback? onTap;
 
   const _WeatherMetric(
     this.icon,
@@ -19,6 +20,7 @@ class _WeatherMetric {
     this.description,
     this.subDescription,
     this.color,
+    [this.onTap],
   );
 }
 
@@ -329,6 +331,7 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
               humidityDesc,
               humiditySubDesc,
               humidityColor,
+              humidity > humidityLimit ? _showHumidityAlert : null,
             ),
           ], theme),
         ],
@@ -371,7 +374,7 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     ThemeData theme, {
     bool isFullWidth = false,
   }) {
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -431,6 +434,27 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
+          ),
+        ],
+      ),
+    );
+
+    if (metric.onTap != null) {
+      return GestureDetector(onTap: metric.onTap, child: card);
+    }
+    return card;
+  }
+
+  void _showHumidityAlert() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t('High Humidity')),
+        content: Text(t('Bring extra bottle')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(t('OK')),
           ),
         ],
       ),
