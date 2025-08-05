@@ -802,7 +802,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         signed: true,
       ),
       inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\\d*\\.?\\d*')),
+        // Allow optional leading minus sign and decimal numbers.
+        // The previous regex mistakenly escaped the digit matcher (\d),
+        // blocking numeric input. This pattern restores responsiveness while
+        // still restricting input to valid numeric characters.
+        FilteringTextInputFormatter.allow(
+          RegExp(r'^-?[0-9]*\.?[0-9]*'),
+        ),
       ],
       decoration: InputDecoration(
         labelText: label,
