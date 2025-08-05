@@ -78,7 +78,7 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
 
   DateTime _nextCommuteTime(UserPreferences prefs) {
     final now = DateTime.now();
-    TimeOfDay rideTime = prefs.commuteWindows.morningLocal;
+    TimeOfDay rideTime = prefs.commuteWindows.startLocal;
     DateTime scheduled = DateTime(
       now.year,
       now.month,
@@ -100,7 +100,7 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
     final prefs = await _prefsService.loadPreferences();
     final updated = prefs.copyWith(
       commuteWindows: prefs.commuteWindows.copyWith(
-        morning: CommuteWindows.localTimeOfDayToUtc(time),
+        start: CommuteWindows.localTimeOfDayToUtc(time),
       ),
     );
     await _prefsService.savePreferences(updated);

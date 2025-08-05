@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_commute_status(device_id: str) -> dict:
-    """Return commute status for morning and evening windows."""
+    """Return commute status for route start and end windows."""
     logger.info("Computing commute status for device %s", device_id)
     doc = await thresholds_collection.find_one({"device_id": device_id})
     if not doc:
@@ -29,35 +29,42 @@ async def get_commute_status(device_id: str) -> dict:
 
     today = datetime.now().date()
     if thresholds.commute_windows:
-        morning_dt = datetime.combine(today, parse_time(thresholds.commute_windows.morning))
-        evening_dt = datetime.combine(today, parse_time(thresholds.commute_windows.evening))
+        start_dt = datetime.combine(
+            today, parse_time(thresholds.commute_windows.start)
+        )
+        end_dt = datetime.combine(
+            today, parse_time(thresholds.commute_windows.end)
+        )
     else:
-        morning_dt = datetime.combine(today, parse_time("08:00"))
-        evening_dt = datetime.combine(today, parse_time("17:00"))
+        start_dt = datetime.combine(today, parse_time("08:00"))
+        end_dt = datetime.combine(today, parse_time("17:00"))
 
-    morning_weather = get_hourly_forecast(lat, lon, morning_dt)
-    evening_weather = get_hourly_forecast(lat, lon, evening_dt)
-    logger.debug("Morning weather: %s, Evening weather: %s", morning_weather, evening_weather)
+    start_weather = get_hourly_forecast(lat, lon, start_dt)
+    end_weather = get_hourly_forecast(lat, lon, end_dt)
+    logger.debug(
+        "Start weather: %s, End weather: %s", start_weather, end_weather
+    )
 
     limits_data = thresholds.weather_limits
-    morning_exceeded = evaluate_thresholds(morning_weather, limits_data)
-    evening_exceeded = evaluate_thresholds(evening_weather, limits_data)
+    start_exceeded = evaluate_thresholds(start_weather, limits_data)
+    end_exceeded = evaluate_thresholds(end_weather, limits_data)
     logger.info(
-        "Commute evaluation for %s - morning exceeded: %s, evening exceeded: %s",
+        "Commute evaluation for %s - start exceeded: %s, end exceeded: %s",
         device_id,
-        morning_exceeded,
-        evening_exceeded,
+        start_exceeded,
+        end_exceeded,
     )
 
     return {
         "device_id": device_id,
+        # Keep response keys for backward compatibility
         "morning_status": {
-            "exceeded": morning_exceeded,
-            "weather_snapshot": morning_weather,
+            "exceeded": start_exceeded,
+            "weather_snapshot": start_weather,
         },
         "evening_status": {
-            "exceeded": evening_exceeded,
-            "weather_snapshot": evening_weather,
+            "exceeded": end_exceeded,
+            "weather_snapshot": end_weather,
         },
     }
 

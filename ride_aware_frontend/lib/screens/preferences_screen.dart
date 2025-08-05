@@ -50,9 +50,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   final _officeLatController = TextEditingController();
   final _officeLonController = TextEditingController();
 
-  // Commute time variables (displayed in local time, stored as UTC)
-  TimeOfDay _morningCommuteTime = const TimeOfDay(hour: 7, minute: 30);
-  TimeOfDay _eveningCommuteTime = const TimeOfDay(hour: 17, minute: 30);
+  // Route time variables (displayed in local time, stored as UTC)
+  TimeOfDay _routeStartTime = const TimeOfDay(hour: 7, minute: 30);
+  TimeOfDay _routeEndTime = const TimeOfDay(hour: 17, minute: 30);
 
   UserPreferences _currentPreferences = UserPreferences.defaultValues();
   bool _isSubmitting = false;
@@ -132,19 +132,19 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           .toStringAsFixed(6);
     }
 
-    // Populate commute times - convert from UTC to local time for display
-    _morningCommuteTime = preferences.commuteWindows.morningLocal;
-    _eveningCommuteTime = preferences.commuteWindows.eveningLocal;
+    // Populate route times - convert from UTC to local time for display
+    _routeStartTime = preferences.commuteWindows.startLocal;
+    _routeEndTime = preferences.commuteWindows.endLocal;
 
     if (kDebugMode) {
       print('🕐 Time Conversion Debug:');
-      print('   Stored Morning UTC: ${preferences.commuteWindows.morning}');
+      print('   Stored Route Start UTC: ${preferences.commuteWindows.start}');
       print(
-        '   Displayed Morning Local: ${_formatTimeOfDay(_morningCommuteTime)}',
+        '   Displayed Start Local: ${_formatTimeOfDay(_routeStartTime)}',
       );
-      print('   Stored Evening UTC: ${preferences.commuteWindows.evening}');
+      print('   Stored Route End UTC: ${preferences.commuteWindows.end}');
       print(
-        '   Displayed Evening Local: ${_formatTimeOfDay(_eveningCommuteTime)}',
+        '   Displayed End Local: ${_formatTimeOfDay(_routeEndTime)}',
       );
       print('   Current Timezone Offset: ${DateTime.now().timeZoneOffset}');
     }
@@ -156,15 +156,15 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
   UserPreferences _createPreferencesFromForm() {
     // Convert local times to UTC for storage
-    final morningUtc = CommuteWindows.localTimeOfDayToUtc(_morningCommuteTime);
-    final eveningUtc = CommuteWindows.localTimeOfDayToUtc(_eveningCommuteTime);
+    final startUtc = CommuteWindows.localTimeOfDayToUtc(_routeStartTime);
+    final endUtc = CommuteWindows.localTimeOfDayToUtc(_routeEndTime);
 
     if (kDebugMode) {
       print('🕐 Time Conversion for Storage:');
-      print('   Local Morning: ${_formatTimeOfDay(_morningCommuteTime)}');
-      print('   UTC Morning: $morningUtc');
-      print('   Local Evening: ${_formatTimeOfDay(_eveningCommuteTime)}');
-      print('   UTC Evening: $eveningUtc');
+      print('   Local Start: ${_formatTimeOfDay(_routeStartTime)}');
+      print('   UTC Start: $startUtc');
+      print('   Local End: ${_formatTimeOfDay(_routeEndTime)}');
+      print('   UTC End: $endUtc');
       print('   Current Timezone Offset: ${DateTime.now().timeZoneOffset}');
     }
 
@@ -187,44 +187,44 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         latitude: double.tryParse(_officeLatController.text) ?? 0.0,
         longitude: double.tryParse(_officeLonController.text) ?? 0.0,
       ),
-      commuteWindows: CommuteWindows(morning: morningUtc, evening: eveningUtc),
+      commuteWindows: CommuteWindows(start: startUtc, end: endUtc),
     );
   }
 
-  Future<void> _selectMorningTime() async {
+  Future<void> _selectRouteStartTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _morningCommuteTime,
-      helpText: 'Select Morning Commute Time (Local)',
+      initialTime: _routeStartTime,
+      helpText: 'Select Route Start Time (Local)',
     );
-    if (picked != null && picked != _morningCommuteTime) {
+    if (picked != null && picked != _routeStartTime) {
       setState(() {
-        _morningCommuteTime = picked;
+        _routeStartTime = picked;
       });
 
       if (kDebugMode) {
         final utcTime = CommuteWindows.localTimeOfDayToUtc(picked);
-        print('🕐 Morning Time Selected:');
+        print('🕐 Route Start Time Selected:');
         print('   Local Time: ${_formatTimeOfDay(picked)}');
         print('   Will be stored as UTC: $utcTime');
       }
     }
   }
 
-  Future<void> _selectEveningTime() async {
+  Future<void> _selectRouteEndTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _eveningCommuteTime,
-      helpText: 'Select Evening Commute Time (Local)',
+      initialTime: _routeEndTime,
+      helpText: 'Select Route End Time (Local)',
     );
-    if (picked != null && picked != _eveningCommuteTime) {
+    if (picked != null && picked != _routeEndTime) {
       setState(() {
-        _eveningCommuteTime = picked;
+        _routeEndTime = picked;
       });
 
       if (kDebugMode) {
         final utcTime = CommuteWindows.localTimeOfDayToUtc(picked);
-        print('🕐 Evening Time Selected:');
+        print('🕐 Route End Time Selected:');
         print('   Local Time: ${_formatTimeOfDay(picked)}');
         print('   Will be stored as UTC: $utcTime');
       }
@@ -486,10 +486,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         );
         print('   Total route points: ${routeModel.routePoints.length}');
         print(
-          '   Commute Windows (UTC): Morning ${preferences.commuteWindows.morning}, Evening ${preferences.commuteWindows.evening}',
+          '   Commute Windows (UTC): Start ${preferences.commuteWindows.start}, End ${preferences.commuteWindows.end}',
         );
         print(
-          '   Commute Windows (Local): Morning ${_formatTimeOfDay(_morningCommuteTime)}, Evening ${_formatTimeOfDay(_eveningCommuteTime)}',
+          '   Commute Windows (Local): Start ${_formatTimeOfDay(_routeStartTime)}, End ${_formatTimeOfDay(_routeEndTime)}',
         );
         print(
           '   Temperature Range: ${preferences.weatherLimits.minTemperature}°C to ${preferences.weatherLimits.maxTemperature}°C',
@@ -769,12 +769,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Commute Window Settings',
+              'Daily Commute Schedule',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Set your typical commute times for personalized weather alerts',
+              'Set your route start and end times for personalized weather alerts',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -795,12 +795,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Morning Commute',
+                        'Route Start Time',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
                       InkWell(
-                        onTap: _selectMorningTime,
+                        onTap: _selectRouteStartTime,
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -817,7 +817,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                _formatTimeOfDay(_morningCommuteTime),
+                                _formatTimeOfDay(_routeStartTime),
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ],
@@ -833,12 +833,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Evening Commute',
+                        'Route End Time',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
                       InkWell(
-                        onTap: _selectEveningTime,
+                        onTap: _selectRouteEndTime,
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -855,7 +855,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                _formatTimeOfDay(_eveningCommuteTime),
+                                _formatTimeOfDay(_routeEndTime),
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ],

@@ -13,20 +13,27 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with WidgetsBindingObserver {
   final NotificationService _notificationService = NotificationService();
   final PreferencesService _prefsService = PreferencesService();
 
   UserPreferences? _prefs;
   String _feedbackSummary = 'You did a great job!';
-  bool _morningFeedbackGiven = false;
   bool _eveningFeedbackGiven = false;
   DateTime _lastReset = DateTime.now();
+
+  final GlobalKey<UpcomingCommuteAlertState> _alertKey =
+      GlobalKey<UpcomingCommuteAlertState>();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadPrefs();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _alertKey.currentState?.refreshForecast();
+    });
   }
 
   Future<void> _loadPrefs() async {
@@ -36,40 +43,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
   void _resetFlagsIfNewDay() {
     final now = DateTime.now();
     if (now.year != _lastReset.year ||
         now.month != _lastReset.month ||
         now.day != _lastReset.day) {
-      _morningFeedbackGiven = false;
       _eveningFeedbackGiven = false;
       _feedbackSummary = 'You did a great job!';
       _lastReset = now;
     }
   }
 
-  String? _pendingFeedback() {
-    if (_prefs == null) return null;
-    final now = TimeOfDay.now();
-    final morning = _prefs!.commuteWindows.morningLocal;
-    final evening = _prefs!.commuteWindows.eveningLocal;
-    bool isAfter(TimeOfDay a, TimeOfDay b) =>
-        a.hour > b.hour || (a.hour == b.hour && a.minute >= b.minute);
-    // Prioritize evening feedback once the evening commute has passed.
-    if (!_eveningFeedbackGiven && isAfter(now, evening)) {
-      return 'evening';
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _alertKey.currentState?.refreshForecast();
     }
-    // Show morning feedback any time after the morning commute until it is given.
-    if (!_morningFeedbackGiven && isAfter(now, morning)) {
-      return 'morning';
-    }
-    return null;
+  }
+
+  bool _shouldShowFeedbackCard() {
+    if (_prefs == null) return false;
+    final now = DateTime.now();
+    final end = _prefs!.commuteWindows.endLocal;
+    final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
+    final feedbackTime = todayEnd.add(const Duration(hours: 1));
+    return now.isAfter(feedbackTime);
   }
 
   @override
   Widget build(BuildContext context) {
     _resetFlagsIfNewDay();
-    final pending = _pendingFeedback();
+    final showFeedback = _shouldShowFeedbackCard();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -121,36 +131,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
 
             // Commute Feedback Card
-            if (pending != null)
+            if (showFeedback)
               Card(
+                color: _eveningFeedbackGiven ? Colors.grey : Colors.red,
                 margin: const EdgeInsets.all(16),
                 child: ListTile(
-                  leading: const Icon(Icons.feedback, color: Colors.orange),
-                  title: const Text('Feedback available for your last ride'),
-                  onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            PostRideFeedbackScreen(commuteTime: pending),
-                      ),
-                    );
-                    if (result != null) {
-                      setState(() {
-                        _feedbackSummary = result['summary'] as String;
-                        if (result['commute'] == 'morning') {
-                          _morningFeedbackGiven = true;
-                        } else {
-                          _eveningFeedbackGiven = true;
-                        }
-                      });
-                    }
-                  },
+                  leading: const Icon(Icons.feedback, color: Colors.white),
+                  title: Text(
+                    _eveningFeedbackGiven
+                        ? 'Feedback submitted for your last ride'
+                        : 'Feedback available for your last ride',
+                  ),
+                  onTap: _eveningFeedbackGiven
+                      ? null
+                      : () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PostRideFeedbackScreen(
+                                commuteTime: 'evening',
+                              ),
+                            ),
+                          );
+                          if (result != null) {
+                            setState(() {
+                              _feedbackSummary = result['summary'] as String;
+                              _eveningFeedbackGiven = true;
+                            });
+                          }
+                        },
                 ),
               ),
 
             // Commute Status Panel
-            UpcomingCommuteAlert(feedbackSummary: _feedbackSummary),
+            UpcomingCommuteAlert(
+              key: _alertKey,
+              feedbackSummary: _feedbackSummary,
+            ),
 
             // Notification Status Card
             Card(
