@@ -440,7 +440,14 @@ class _UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     );
 
     if (metric.onTap != null) {
-      return GestureDetector(onTap: metric.onTap, child: card);
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: metric.onTap,
+          child: card,
+        ),
+      );
     }
     return card;
   }
