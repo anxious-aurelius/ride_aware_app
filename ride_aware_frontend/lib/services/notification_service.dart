@@ -64,6 +64,10 @@ class NotificationService {
       const initSettings = InitializationSettings(android: androidInit);
       await _localNotifications.initialize(initSettings);
       tz.initializeTimeZones();
+
+      if (kDebugMode) {
+        _scheduleDebugTestNotification();
+      }
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error initializing notifications: $e');
@@ -165,22 +169,30 @@ class NotificationService {
     final now = DateTime.now();
     final morning = windows.morningLocal;
     final evening = windows.eveningLocal;
-    final morningTime = DateTime(
+    var morningTime = DateTime(
       now.year,
       now.month,
       now.day,
       morning.hour,
       morning.minute,
     );
-    final eveningTime = DateTime(
+    var eveningTime = DateTime(
       now.year,
       now.month,
       now.day,
       evening.hour,
       evening.minute,
     );
+    morningTime = rollForwardIfPast(morningTime);
+    eveningTime = rollForwardIfPast(eveningTime);
     await _scheduleLocal(1, morningTime);
     await _scheduleLocal(2, eveningTime);
+  }
+
+  @visibleForTesting
+  DateTime rollForwardIfPast(DateTime time) {
+    final now = DateTime.now();
+    return time.isBefore(now) ? time.add(const Duration(days: 1)) : time;
   }
 
   Future<void> _scheduleLocal(int id, DateTime time) async {
@@ -191,6 +203,22 @@ class NotificationService {
       tz.TZDateTime.from(time, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails('feedback', 'Feedback'),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  void _scheduleDebugTestNotification() {
+    final testTime = DateTime.now().add(const Duration(seconds: 5));
+    _localNotifications.zonedSchedule(
+      9999,
+      'Test notification',
+      'This is a debug test.',
+      tz.TZDateTime.from(testTime, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails('debug', 'Debug'),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
