@@ -367,11 +367,18 @@ class CommuteWindows {
   /// Stored in UTC format (HH:mm)
   final String end;
 
-  const CommuteWindows({required this.start, required this.end});
+  const CommuteWindows._({required this.start, required this.end});
+
+  factory CommuteWindows({required String start, required String end}) {
+    return CommuteWindows._(
+      start: _formatTime(start),
+      end: _formatTime(end),
+    );
+  }
 
   factory CommuteWindows.defaultValues() {
     // Default times in UTC (assuming user is in UTC+0 initially)
-    return const CommuteWindows(start: '07:30', end: '17:30');
+    return CommuteWindows(start: '07:30', end: '17:30');
   }
 
   factory CommuteWindows.fromJson(Map<String, dynamic> json) {
@@ -391,6 +398,14 @@ class CommuteWindows {
       start: start ?? this.start,
       end: end ?? this.end,
     );
+  }
+
+  static String _formatTime(String time) {
+    final parts = time.split(':');
+    if (parts.length != 2) return time;
+    final hour = parts[0].padLeft(2, '0');
+    final minute = parts[1].padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   bool get isValid {
