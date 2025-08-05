@@ -22,6 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   String _feedbackSummary = 'You did a great job!';
   bool _eveningFeedbackGiven = false;
   DateTime _lastReset = DateTime.now();
+  bool _feedbackNotificationShown = false;
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
@@ -60,6 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       _feedbackSummary = 'You did a great job!';
       _lastReset = now;
       _prefsService.clearEveningFeedbackGiven();
+      _feedbackNotificationShown = false;
     }
   }
 
@@ -83,6 +85,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget build(BuildContext context) {
     _resetFlagsIfNewDay();
     final showFeedback = _shouldShowFeedbackCard();
+    if (showFeedback && !_eveningFeedbackGiven && !_feedbackNotificationShown) {
+      _notificationService.showFeedbackNotification();
+      _feedbackNotificationShown = true;
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
