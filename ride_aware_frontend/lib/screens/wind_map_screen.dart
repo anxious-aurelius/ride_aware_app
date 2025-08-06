@@ -72,8 +72,8 @@ class _WindMapScreenState extends State<WindMapScreen> {
     final jsCommand = '''
       L.marker([$lat, $lon], {
         icon: L.divIcon({
-          className: 'wind-arrow',
-          html: "<div class='arrow-wrapper' style='--deg:${windDeg}deg'><div class='arrow'>&#8593;</div></div>",
+          className: 'leaflet-div-icon wind-arrow',
+          html: "<div class='arrow-container' style='transform: rotate(${windDeg}deg);'><div class='arrow'>&#8593;</div></div>",
           iconSize: [60, 60],
           iconAnchor: [30, 30]
         })
