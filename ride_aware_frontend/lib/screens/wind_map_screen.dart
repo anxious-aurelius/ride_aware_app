@@ -17,7 +17,31 @@ class WindMapScreen extends StatefulWidget {
 }
 
 class _WindMapScreenState extends State<WindMapScreen> {
-  late WebViewController _webViewController;
+  late final WebViewController _webViewController;
+
+  @override
+  void initState() {
+    super.initState();
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (url) {
+            _fetchAndDisplayWindData();
+          },
+        ),
+      );
+    _loadInitialHtml();
+  }
+
+  Future<void> _loadInitialHtml() async {
+    String html = await rootBundle.loadString('assets/wind_map.html');
+    List<List<double>> coords =
+        widget.routePoints.map((p) => [p.latitude, p.longitude]).toList();
+    html =
+        html.replaceFirst('ROUTE_COORDS_PLACEHOLDER', jsonEncode(coords));
+    await _webViewController.loadHtmlString(html);
+  }
 
   Future<void> _fetchAndDisplayWindData() async {
     List<Map<String, double>> coords = widget.routePoints
@@ -47,28 +71,14 @@ class _WindMapScreenState extends State<WindMapScreen> {
   void _addWindArrow(double lat, double lon, double windDeg) {
     String jsCommand =
         "L.marker([$lat, $lon], {icon: L.divIcon({className: 'wind-arrow', html: \"<div style='transform: rotate(${windDeg}deg); color: red; font-size: 20px;'>&#8593;</div>\", iconSize: [20,20], iconAnchor: [10,10]})}).addTo(map);";
-    _webViewController.runJavascript(jsCommand);
+    _webViewController.runJavaScript(jsCommand);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Wind Visualization')),
-      body: WebView(
-        javascriptMode: JavascriptMode.unrestricted,
-        onWebViewCreated: (controller) async {
-          _webViewController = controller;
-          String html = await rootBundle.loadString('assets/wind_map.html');
-          List<List<double>> coords = widget.routePoints
-              .map((p) => [p.latitude, p.longitude])
-              .toList();
-          html = html.replaceFirst('ROUTE_COORDS_PLACEHOLDER', jsonEncode(coords));
-          await _webViewController.loadHtmlString(html);
-        },
-        onPageFinished: (url) {
-          _fetchAndDisplayWindData();
-        },
-      ),
+      body: WebViewWidget(controller: _webViewController),
     );
   }
 }
