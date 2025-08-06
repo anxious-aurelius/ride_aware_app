@@ -24,7 +24,7 @@ async def create_history_entry(
         "feedback": None,
     }
     await ride_history_collection.update_one(
-        {"threshold_id": threshold_id}, {"$set": doc}, upsert=True
+        {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True
     )
 
 

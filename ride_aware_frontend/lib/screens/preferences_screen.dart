@@ -458,6 +458,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       await _preferencesService.savePreferencesWithDeviceId(
         preferences,
       ); // This still uses the deviceIdService internally
+      await _preferencesService.clearEndFeedbackGiven();
       if (newThresholdId != null && !feedbackGiven && oldThresholdId != null) {
         await _preferencesService.setPendingFeedback(DateTime.now());
         await _preferencesService
