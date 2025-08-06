@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wind Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #map { height: 100%; width: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet-Velocity (Windy plugin) JS -->
+    <script src="https://unpkg.com/leaflet-velocity/dist/leaflet-velocity.min.js"></script>
+    <script>
+      // Initialize the map
+      var map = L.map('map').setView([0, 0], 2);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '©️ OpenStreetMap'
+      }).addTo(map);
+
+      // Placeholder for route coordinates injected from Flutter
+      var routeCoords = ROUTE_COORDS_PLACEHOLDER;
+      if (routeCoords && routeCoords.length > 0) {
+        var bounds = L.latLngBounds(routeCoords);
+        map.fitBounds(bounds, { padding: [20, 20] });
+        L.polyline(routeCoords, { color: 'blue', weight: 4 }).addTo(map);
+      }
+
+      // Placeholder for wind data injected from Flutter
+      var windData = WIND_DATA_PLACEHOLDER;
+      var velocityLayer = L.velocityLayer({
+        displayValues: false,
+        displayOptions: {
+          velocityType: 'Wind',
+          position: 'bottomleft',
+          emptyString: 'No wind data'
+        },
+        data: windData,
+        maxVelocity: 20,
+        velocityScale: 0.005,
+      });
+      if (windData) {
+        velocityLayer.addTo(map);
+      }
+    </script>
+  </body>
+</html>

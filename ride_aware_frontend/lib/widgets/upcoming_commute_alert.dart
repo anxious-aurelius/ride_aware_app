@@ -7,6 +7,7 @@ import '../utils/i18n.dart';
 import '../models/user_preferences.dart';
 import '../services/preferences_service.dart';
 import '../services/api_service.dart';
+import '../screens/wind_map_screen.dart';
 
 // Helper classes defined outside the widget
 class _WeatherMetric {
@@ -468,7 +469,26 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           children: [
             Expanded(child: _buildEnhancedWeatherCard(metrics[1], theme)),
             const SizedBox(width: 12),
-            Expanded(child: _buildEnhancedWeatherCard(metrics[2], theme)),
+            Expanded(
+              child: InkWell(
+                onTap: () {
+                  if (result != null) {
+                    final routePoints = result!.route.routePoints;
+                    Map<String, dynamic>? windData;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WindMapScreen(
+                          routePoints: routePoints,
+                          windData: windData,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: _buildEnhancedWeatherCard(metrics[2], theme),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
