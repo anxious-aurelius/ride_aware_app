@@ -56,6 +56,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 _selectedDay = selected;
                 _focusedDay = focused;
               });
+              _loadHistory();
             },
           ),
           const SizedBox(height: 8),

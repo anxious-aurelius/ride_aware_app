@@ -9,9 +9,32 @@ from services.db import ride_history_collection
 logger = logging.getLogger(__name__)
 
 
+async def create_history_entry(
+    device_id: str, threshold_id: str, date: str, start_time: str, end_time: str
+) -> None:
+    """Create an empty history record linked to a threshold."""
+    doc = {
+        "device_id": device_id,
+        "threshold_id": threshold_id,
+        "date": date,
+        "start_time": start_time,
+        "end_time": end_time,
+        "status": "pending",
+        "summary": {},
+    }
+    await ride_history_collection.update_one(
+        {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True
+    )
+
+
 async def save_ride(entry: RideHistoryEntry) -> dict:
     try:
-        await ride_history_collection.insert_one(entry.model_dump(mode="json"))
+        doc = entry.model_dump(mode="json")
+        await ride_history_collection.update_one(
+            {"device_id": entry.device_id, "threshold_id": entry.threshold_id},
+            {"$set": doc},
+            upsert=True,
+        )
         logger.info(
             "Ride history saved for device %s on %s (threshold %s)",
             entry.device_id,
