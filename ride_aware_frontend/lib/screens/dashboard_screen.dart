@@ -87,14 +87,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _shouldShowFeedbackCard() {
     if (_prefs == null) return false;
     final now = DateTime.now();
-    final end = _prefs!.commuteWindows.endLocal;
-    final start = _prefs!.commuteWindows.startLocal;
 
-    final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
+    final start = _prefs!.commuteWindows.startLocal;
+    final end = _prefs!.commuteWindows.endLocal;
+
+    // Show the feedback card one hour after the user's current route end time
+    final todayEnd =
+        DateTime(now.year, now.month, now.day, end.hour, end.minute);
     final showTime = todayEnd.add(const Duration(hours: 1));
 
-    var nextStart = DateTime(now.year, now.month, now.day, start.hour, start.minute);
-    if (!now.isBefore(nextStart)) {
+    // Hide the card one minute before the next route start time
+    DateTime nextStart =
+        DateTime(now.year, now.month, now.day, start.hour, start.minute);
+    if (now.isAfter(nextStart) || now.isAtSameMomentAs(nextStart)) {
       nextStart = nextStart.add(const Duration(days: 1));
     }
     final hideTime = nextStart.subtract(const Duration(minutes: 1));
