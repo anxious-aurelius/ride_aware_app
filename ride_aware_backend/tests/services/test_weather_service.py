@@ -58,3 +58,30 @@ def test_get_hourly_forecast_missing_api_key(monkeypatch):
     monkeypatch.delenv("OPENWEATHER_API_KEY", raising=False)
     with pytest.raises(weather_service.MissingAPIKeyError):
         weather_service.get_hourly_forecast(1.0, 2.0, dt)
+
+
+def test_get_next_hours_forecast(monkeypatch):
+    monkeypatch.setenv("OPENWEATHER_API_KEY", "key")
+    monkeypatch.delenv("OPENWEATHER_URL", raising=False)
+    captured = {}
+
+    def fake_get(url, params=None):
+        captured["params"] = params
+        return make_response(
+            {
+                "list": [
+                    {
+                        "dt": 1,
+                        "wind": {"speed": 2, "deg": 90},
+                        "main": {"temp": 10, "humidity": 50},
+                        "rain": {"3h": 0.1},
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(weather_service.requests, "get", fake_get)
+    res = weather_service.get_next_hours_forecast(1.0, 2.0, 1)
+    assert len(res) == 1
+    assert res[0]["temp"] == 10
+    assert captured["params"]["cnt"] == 1

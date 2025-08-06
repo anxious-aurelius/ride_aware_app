@@ -73,4 +73,31 @@ void main() {
     );
     expect(res['summary']['max_wind_speed'], 5);
   });
+
+  test('getNextHoursForecast returns parsed list', () async {
+    final mockClient = MockClient((request) async {
+      expect(request.url.path, contains('/api/forecast/next'));
+      return http.Response(
+          jsonEncode([
+            {
+              'time': '2024-01-01T01:00:00Z',
+              'wind_speed': '5',
+              'wind_deg': '180',
+              'rain': '0.1',
+              'humidity': '70',
+              'temp': '15'
+            }
+          ]),
+          200);
+    });
+
+    final service = ForecastService(
+      client: mockClient,
+      deviceIdService: _FakeDeviceIdService(),
+    );
+
+    final res = await service.getNextHoursForecast(0, 0, 1);
+    expect(res, isA<List>());
+    expect(res.first['temp'], 15.0);
+  });
 }

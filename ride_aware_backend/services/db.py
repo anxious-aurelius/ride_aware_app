@@ -13,6 +13,7 @@ routes_collection = db["routes"]
 fcm_tokens_collection = db["fcm_tokens"]
 feedback_collection = db["feedback"]
 ride_history_collection = db["ride_history"]
+forecasts_collection = db["forecasts"]
 
 
 async def init_db() -> None:

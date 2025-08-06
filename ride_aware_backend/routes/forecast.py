@@ -3,7 +3,11 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
-from controllers.forecast_controller import get_forecast, evaluate_route
+from controllers.forecast_controller import (
+    get_forecast,
+    evaluate_route,
+    get_next_hours,
+)
 from services.weather_service import MissingAPIKeyError
 from models.thresholds import WeatherLimits
 
@@ -16,6 +20,22 @@ async def forecast(lat: float, lon: float, time: datetime):
     logger.info("Requesting forecast for lat=%s lon=%s at %s", lat, lon, time)
     try:
         return await get_forecast(lat, lon, time)
+    except MissingAPIKeyError as e:
+        logger.error("Weather service configuration error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Unexpected error retrieving forecast")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/forecast/next")
+async def forecast_next(lat: float, lon: float, hours: int = 6):
+    """Return next hours forecast snapshots."""
+    logger.info(
+        "Requesting next %s hours forecast for lat=%s lon=%s", hours, lat, lon
+    )
+    try:
+        return await get_next_hours(lat, lon, hours)
     except MissingAPIKeyError as e:
         logger.error("Weather service configuration error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

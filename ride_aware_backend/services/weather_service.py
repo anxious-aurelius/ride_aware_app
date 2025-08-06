@@ -80,3 +80,45 @@ def get_hourly_forecast(lat: float, lon: float, target_time: datetime) -> Dict:
     logger.debug("Selected weather data: %s", data)
     return data
 
+
+def get_next_hours_forecast(lat: float, lon: float, hours: int = 6):
+    """Return forecast snapshots for the upcoming ``hours`` hours."""
+    logger.info(
+        "Fetching next %s hours forecast for lat=%s lon=%s", hours, lat, lon
+    )
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    if not api_key:
+        logger.error("OPENWEATHER_API_KEY environment variable not set")
+        raise MissingAPIKeyError("OPENWEATHER_API_KEY environment variable not set")
+
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": api_key,
+        "units": "metric",
+        "cnt": hours,
+    }
+    response = requests.get(OPENWEATHER_URL, params=params)
+    logger.debug(
+        "Weather API response status: %s", getattr(response, "status_code", "unknown")
+    )
+    response.raise_for_status()
+    forecast_list = response.json().get("list", [])[:hours]
+    results = []
+    for item in forecast_list:
+        rain_data = item.get("rain")
+        if isinstance(rain_data, dict):
+            rain_data = rain_data.get("3h") or rain_data.get("1h")
+        results.append(
+            {
+                "time": datetime.fromtimestamp(item.get("dt", 0)).isoformat(),
+                "wind_speed": item.get("wind", {}).get("speed"),
+                "wind_deg": item.get("wind", {}).get("deg"),
+                "rain": rain_data,
+                "humidity": item.get("main", {}).get("humidity"),
+                "temp": item.get("main", {}).get("temp"),
+            }
+        )
+    logger.debug("Next hours forecast data: %s", results)
+    return results
+

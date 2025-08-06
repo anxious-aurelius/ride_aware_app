@@ -60,6 +60,36 @@ class ForecastService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getNextHoursForecast(
+    double lat,
+    double lon,
+    int hours,
+  ) async {
+    final uri = Uri.parse('${ApiService.baseUrl}/api/forecast/next').replace(
+      queryParameters: {
+        'lat': lat.toString(),
+        'lon': lon.toString(),
+        'hours': hours.toString(),
+      },
+    );
+    final response = await _client.get(uri, headers: await _getHeaders());
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List;
+      return data.map<Map<String, dynamic>>((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        const keys = {'wind_speed', 'wind_deg', 'rain', 'humidity', 'temp'};
+        for (final k in keys) {
+          if (m.containsKey(k)) {
+            m[k] = parseDouble(m[k]);
+          }
+        }
+        return m;
+      }).toList();
+    } else {
+      throw Exception('Failed to load forecast: ${response.statusCode}');
+    }
+  }
+
   /// Evaluate weather along a route of [points] at the specified [time].
   Future<Map<String, dynamic>> evaluateRoute(
     List<GeoPoint> points,

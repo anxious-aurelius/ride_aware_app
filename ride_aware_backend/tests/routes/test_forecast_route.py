@@ -75,3 +75,21 @@ def test_route_forecast(monkeypatch):
     resp = client.post("/api/forecast/route", json=body)
     assert resp.status_code == 200
     assert resp.json()["summary"]["max_wind_speed"] == 5
+
+
+def test_forecast_next(monkeypatch):
+    async def fake_next_hours(lat: float, lon: float, hours: int):
+        return [{"temp": 20}]
+
+    monkeypatch.setattr(forecast, "get_next_hours", fake_next_hours)
+
+    app = FastAPI()
+    app.include_router(forecast.router)
+    client = TestClient(app)
+
+    resp = client.get(
+        "/api/forecast/next",
+        params={"lat": 1.0, "lon": 2.0, "hours": 6},
+    )
+    assert resp.status_code == 200
+    assert resp.json()[0]["temp"] == 20

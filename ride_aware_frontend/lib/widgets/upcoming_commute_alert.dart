@@ -145,7 +145,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       showPostCommuteCard = now.isAfter(todayStartTime);
     }
 
-    return Card(
+    final mainCard = Card(
       margin: const EdgeInsets.all(16),
       elevation: 8,
       shadowColor: status.color.withOpacity(0.3),
@@ -225,6 +225,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         ),
       ),
     );
+
+    final cards = <Widget>[mainCard];
+    if (_vm.hourlyForecasts != null && _vm.hourlyForecasts!.isNotEmpty) {
+      cards.add(_buildHourlyForecastCard(theme));
+    }
+
+    return Column(children: cards);
   }
 
   Widget _buildStatusHeader(
@@ -1053,6 +1060,71 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHourlyForecastCard(ThemeData theme) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        title: Text(t('Next 6 Hours Forecast')),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _showHourlyForecastDialog,
+      ),
+    );
+  }
+
+  void _showHourlyForecastDialog() {
+    final theme = Theme.of(context);
+    final forecasts = _vm.hourlyForecasts ?? [];
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(t('Next 6 Hours')),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: forecasts.length,
+              itemBuilder: (context, index) {
+                final f = forecasts[index];
+                DateTime? time;
+                final timeStr = f['time']?.toString();
+                if (timeStr != null) {
+                  time = DateTime.tryParse(timeStr);
+                }
+                final label = time != null
+                    ? '${time.hour.toString().padLeft(2, '0')}:00'
+                    : 'Hour ${index + 1}';
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label, style: theme.textTheme.titleMedium),
+                        Text('Temp: ${f['temp'] ?? '--'}°C'),
+                        Text(
+                            'Wind: ${f['wind_speed'] ?? '--'} m/s ${f['wind_deg'] ?? '--'}°'),
+                        Text('Rain: ${f['rain'] ?? 0}'),
+                        Text('Humidity: ${f['humidity'] ?? '--'}%'),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 
