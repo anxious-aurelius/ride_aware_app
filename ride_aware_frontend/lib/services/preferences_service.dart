@@ -10,6 +10,7 @@ class PreferencesService {
   static const String _prefsVersionKey = 'prefsVersion';
   static const String _lastEndFeedbackKey = 'lastEndFeedback';
   static const String _currentThresholdIdKey = 'currentThresholdId';
+  static const String _pendingFeedbackKey = 'pendingFeedback';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
 
@@ -122,5 +123,25 @@ class PreferencesService {
   Future<String?> getCurrentThresholdId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_currentThresholdIdKey);
+  }
+
+  Future<void> setPendingFeedback(DateTime? timestamp) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (timestamp == null) {
+      await prefs.remove(_pendingFeedbackKey);
+    } else {
+      await prefs.setString(
+          _pendingFeedbackKey, timestamp.toIso8601String());
+    }
+  }
+
+  Future<DateTime?> getPendingFeedbackSince() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ts = prefs.getString(_pendingFeedbackKey);
+    return ts != null ? DateTime.tryParse(ts) : null;
+  }
+
+  Future<bool> hasPendingFeedback() async {
+    return (await getPendingFeedbackSince()) != null;
   }
 }
