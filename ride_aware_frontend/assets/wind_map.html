@@ -8,6 +8,18 @@
     <style>
       html, body { height: 100%; margin: 0; padding: 0; }
       #map { height: 100%; width: 100%; }
+      .wind-arrow .arrow {
+        color: red;
+        font-size: 60px;
+      }
+      .wind-arrow .arrow-wrapper {
+        position: relative;
+        animation: moveArrow 1s ease-in-out infinite alternate;
+      }
+      @keyframes moveArrow {
+        from { transform: rotate(var(--deg)) translateY(0); }
+        to { transform: rotate(var(--deg)) translateY(-10px); }
+      }
     </style>
   </head>
   <body>
