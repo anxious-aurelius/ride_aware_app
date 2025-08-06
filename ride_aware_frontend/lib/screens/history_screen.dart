@@ -73,7 +73,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           leading: _statusIcon(e.status),
                           title: Text(
                               '${_formatTime(e.startTime)}–${_formatTime(e.endTime)}'),
-                          subtitle: Text(e.feedback ?? ''),
+                          subtitle: Text(
+                            e.feedback ??
+                                'Next time you should give feedback to improve your experience.',
+                          ),
                         ),
                       );
                     },

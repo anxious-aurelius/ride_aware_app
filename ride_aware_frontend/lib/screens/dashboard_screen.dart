@@ -28,6 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   DateTime _lastReset = DateTime.now();
   bool _feedbackNotificationShown = false;
   bool _historySaved = false;
+  bool _pendingFeedback = false;
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
@@ -45,9 +46,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   Future<void> _loadPrefs() async {
     final p = await _prefsService.loadPreferences();
     final feedbackGiven = await _prefsService.isEndFeedbackGivenToday();
+    final pending = await _prefsService.hasPendingFeedback();
     setState(() {
       _prefs = p;
       _endFeedbackGiven = feedbackGiven;
+      _pendingFeedback = pending;
     });
   }
 
@@ -68,6 +71,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       _prefsService.clearEndFeedbackGiven();
       _feedbackNotificationShown = false;
       _historySaved = false;
+      _pendingFeedback = false;
+      _prefsService.setPendingFeedback(false);
     }
   }
 
@@ -84,6 +89,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     final end = _prefs!.commuteWindows.endLocal;
     final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
     final expiry = todayEnd.add(const Duration(hours: 1));
+
+    if (_pendingFeedback) {
+      final cutoff = todayEnd.subtract(const Duration(minutes: 1));
+      return now.isBefore(expiry) && now.isBefore(cutoff);
+    }
+
     return now.isAfter(todayEnd) && now.isBefore(expiry);
   }
 
@@ -92,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     final now = DateTime.now();
     final end = _prefs!.commuteWindows.endLocal;
     final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    if (!now.isAfter(todayEnd)) return;
+    if (!now.isAfter(todayEnd.add(const Duration(minutes: 1)))) return;
     final result = _alertKey.currentState?.result;
     if (result == null) return;
     final thresholdId = await _prefsService.getCurrentThresholdId();
@@ -123,6 +134,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (showFeedback && !_endFeedbackGiven && !_feedbackNotificationShown) {
       _notificationService.showFeedbackNotification();
       _feedbackNotificationShown = true;
+    }
+    if (!showFeedback && _pendingFeedback && !_endFeedbackGiven) {
+      _pendingFeedback = false;
+      _prefsService.setPendingFeedback(false);
     }
     return Scaffold(
       appBar: AppBar(
@@ -201,8 +216,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                             setState(() {
                               _feedbackSummary = result['summary'] as String;
                               _endFeedbackGiven = true;
+                              _pendingFeedback = false;
                             });
                             _prefsService.setEndFeedbackGiven(DateTime.now());
+                            _prefsService.setPendingFeedback(false);
                           }
                         },
                 ),
