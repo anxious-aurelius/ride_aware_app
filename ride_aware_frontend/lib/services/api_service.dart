@@ -228,7 +228,10 @@ class ApiService {
   /// Submit ride feedback to the API
   Future<void> submitFeedback(Map<String, dynamic> feedback) async {
     try {
-      final thresholdId = await _preferencesService.getCurrentThresholdId();
+      final pendingId =
+          await _preferencesService.getPendingFeedbackThresholdId();
+      final currentId = await _preferencesService.getCurrentThresholdId();
+      final thresholdId = pendingId ?? currentId;
       if (thresholdId == null) {
         throw Exception('Threshold ID not available. Cannot submit feedback.');
       }

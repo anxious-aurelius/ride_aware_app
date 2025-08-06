@@ -911,8 +911,21 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         commuteWindows: CommuteWindows(start: startUtc, end: endUtc),
       );
 
-      await _apiService.submitThresholds(updatedPrefs);
+      final feedbackGiven =
+          await _preferencesService.isEndFeedbackGivenToday();
+      final String? oldThresholdId =
+          await _preferencesService.getCurrentThresholdId();
+      final String? newThresholdId =
+          await _apiService.submitThresholds(updatedPrefs);
       await _preferencesService.savePreferencesWithDeviceId(updatedPrefs);
+      if (newThresholdId != null && !feedbackGiven && oldThresholdId != null) {
+        await _preferencesService.setPendingFeedback(DateTime.now());
+        await _preferencesService
+            .setPendingFeedbackThresholdId(oldThresholdId);
+      } else {
+        await _preferencesService.setPendingFeedback(null);
+        await _preferencesService.setPendingFeedbackThresholdId(null);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

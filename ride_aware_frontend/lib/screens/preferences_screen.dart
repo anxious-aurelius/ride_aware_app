@@ -451,15 +451,20 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
       final feedbackGiven =
           await _preferencesService.isEndFeedbackGivenToday();
+      final String? oldThresholdId =
+          await _preferencesService.getCurrentThresholdId();
       final String? newThresholdId =
           await _apiService.submitThresholds(preferences);
       await _preferencesService.savePreferencesWithDeviceId(
         preferences,
       ); // This still uses the deviceIdService internally
-      if (newThresholdId != null && !feedbackGiven) {
+      if (newThresholdId != null && !feedbackGiven && oldThresholdId != null) {
         await _preferencesService.setPendingFeedback(DateTime.now());
+        await _preferencesService
+            .setPendingFeedbackThresholdId(oldThresholdId);
       } else {
         await _preferencesService.setPendingFeedback(null);
+        await _preferencesService.setPendingFeedbackThresholdId(null);
       }
 
       final startLocation = GeoPoint(

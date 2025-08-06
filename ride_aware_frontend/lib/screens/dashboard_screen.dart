@@ -77,6 +77,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       _lastReset = now;
       _prefsService.clearEndFeedbackGiven();
       _prefsService.setPendingFeedback(null);
+      _prefsService.setPendingFeedbackThresholdId(null);
       _pendingFeedbackSince = null;
       _feedbackNotificationShown = false;
       _historySaved = false;
@@ -104,32 +105,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
     final hideTime = nextStart.subtract(const Duration(minutes: 1));
 
-    if (_pendingFeedbackSince != null) {
-      final expiry = _pendingFeedbackSince!.add(const Duration(hours: 1));
-      if (now.isAfter(hideTime) || now.isAfter(expiry)) {
-        _endFeedbackGiven = false;
-        _feedbackSummary = 'You did a great job!';
-        _feedbackNotificationShown = false;
-        _prefsService.clearEndFeedbackGiven();
-        _prefsService.setPendingFeedback(null);
-        _pendingFeedbackSince = null;
-        return false;
-      }
-      return true;
-    }
-
-    final todayEnd =
+    DateTime prevEnd =
         DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    final expiry = todayEnd.add(const Duration(hours: 1));
-    if (now.isAfter(hideTime) || now.isAfter(expiry)) {
+    if (!now.isAfter(prevEnd)) {
+      prevEnd = prevEnd.subtract(const Duration(days: 1));
+    }
+    final showTime = prevEnd.add(const Duration(hours: 1));
+
+    if (now.isAfter(hideTime)) {
       _endFeedbackGiven = false;
       _feedbackSummary = 'You did a great job!';
       _feedbackNotificationShown = false;
       _prefsService.clearEndFeedbackGiven();
+      _prefsService.setPendingFeedback(null);
+      _prefsService.setPendingFeedbackThresholdId(null);
+      _pendingFeedbackSince = null;
       return false;
     }
 
-    return now.isAfter(todayEnd);
+    if (_pendingFeedbackSince == null && now.isAfter(showTime)) {
+      _pendingFeedbackSince = now;
+      _prefsService.setPendingFeedback(now);
+    }
+
+    return _pendingFeedbackSince != null && now.isAfter(showTime);
   }
 
   Future<void> _saveRideHistoryIfCompleted() async {
@@ -251,6 +250,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             });
                             _prefsService.setEndFeedbackGiven(DateTime.now());
                             _prefsService.setPendingFeedback(null);
+                            _prefsService.setPendingFeedbackThresholdId(null);
                           }
                         },
                 ),
