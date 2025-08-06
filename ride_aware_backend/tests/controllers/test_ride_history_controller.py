@@ -10,7 +10,7 @@ class DummyCollection:
         self.args = (filter_doc, update_doc, upsert)
 
 
-def test_create_history_entry_resets_document(monkeypatch):
+def test_create_history_entry_sets_defaults_on_insert(monkeypatch):
     dummy = DummyCollection()
     monkeypatch.setattr(ride_history_controller, "ride_history_collection", dummy)
 
@@ -23,5 +23,5 @@ def test_create_history_entry_resets_document(monkeypatch):
     assert dummy.args is not None
     filter_doc, update_doc, upsert = dummy.args
     assert filter_doc == {"threshold_id": "th1"}
-    assert update_doc["$set"]["feedback"] is None
+    assert update_doc["$setOnInsert"]["feedback"] is None
     assert upsert is True

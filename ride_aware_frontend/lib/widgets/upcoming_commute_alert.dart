@@ -35,10 +35,12 @@ class _StatusInfo {
 
 class UpcomingCommuteAlert extends StatefulWidget {
   final String feedbackSummary;
+  final Future<void> Function()? onThresholdUpdated;
 
   const UpcomingCommuteAlert({
     super.key,
     this.feedbackSummary = 'You did a great job!',
+    this.onThresholdUpdated,
   });
 
   @override
@@ -918,6 +920,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       final String? newThresholdId =
           await _apiService.submitThresholds(updatedPrefs);
       await _preferencesService.savePreferencesWithDeviceId(updatedPrefs);
+      await _preferencesService.clearEndFeedbackGiven();
       if (newThresholdId != null && !feedbackGiven && oldThresholdId != null) {
         await _preferencesService.setPendingFeedback(DateTime.now());
         await _preferencesService
@@ -926,6 +929,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         await _preferencesService.setPendingFeedback(null);
         await _preferencesService.setPendingFeedbackThresholdId(null);
       }
+
+      await widget.onThresholdUpdated?.call();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

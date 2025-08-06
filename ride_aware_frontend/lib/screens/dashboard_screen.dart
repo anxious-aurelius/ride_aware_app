@@ -175,13 +175,14 @@ class _DashboardScreenState extends State<DashboardScreen>
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const PreferencesScreen(),
                 ),
               );
+              await _loadPrefs();
             },
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
@@ -260,6 +261,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             UpcomingCommuteAlert(
               key: _alertKey,
               feedbackSummary: _feedbackSummary,
+              onThresholdUpdated: _loadPrefs,
             ),
 
             Card(
