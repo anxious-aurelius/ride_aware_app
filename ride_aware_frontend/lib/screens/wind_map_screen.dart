@@ -70,7 +70,7 @@ class _WindMapScreenState extends State<WindMapScreen> {
 
   void _addWindArrow(double lat, double lon, double windDeg) {
     String jsCommand =
-        "L.marker([$lat, $lon], {icon: L.divIcon({className: 'wind-arrow', html: \"<div style='transform: rotate(${windDeg}deg); color: red; font-size: 20px;'>&#8593;</div>\", iconSize: [20,20], iconAnchor: [10,10]})}).addTo(map);";
+        "L.marker([$lat, $lon], {icon: L.divIcon({className: 'wind-arrow', html: \"<div style='transform: rotate(${windDeg}deg); color: red; font-size: 40px;'>&#8593;</div>\", iconSize: [40,40], iconAnchor: [20,20]})}).addTo(map);";
     _webViewController.runJavaScript(jsCommand);
   }
 
@@ -78,7 +78,9 @@ class _WindMapScreenState extends State<WindMapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Wind Visualization')),
-      body: WebViewWidget(controller: _webViewController),
+      body: SizedBox.expand(
+        child: WebViewWidget(controller: _webViewController),
+      ),
     );
   }
 }
