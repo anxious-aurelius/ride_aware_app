@@ -474,13 +474,11 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 onTap: () {
                   if (result != null) {
                     final routePoints = result!.route.routePoints;
-                    Map<String, dynamic>? windData;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => WindMapScreen(
                           routePoints: routePoints,
-                          windData: windData,
                         ),
                       ),
                     );
