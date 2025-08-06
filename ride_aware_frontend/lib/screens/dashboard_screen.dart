@@ -106,8 +106,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     final hideTime = nextStart.subtract(const Duration(minutes: 1));
 
     // Reset feedback state once the hide window has passed so that
-    // a subsequent route can collect fresh feedback.
-    if (now.isAfter(hideTime) && _endFeedbackGiven) {
+    // a subsequent route can collect fresh feedback. This clears any
+    // stored flags even if the user dismissed the card without
+    // submitting feedback.
+    if (now.isAfter(hideTime) &&
+        (_endFeedbackGiven || _feedbackNotificationShown)) {
       _endFeedbackGiven = false;
       _feedbackSummary = 'You did a great job!';
       _feedbackNotificationShown = false;
