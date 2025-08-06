@@ -69,8 +69,16 @@ class _WindMapScreenState extends State<WindMapScreen> {
   }
 
   void _addWindArrow(double lat, double lon, double windDeg) {
-    String jsCommand =
-        "L.marker([$lat, $lon], {icon: L.divIcon({className: 'wind-arrow', html: \"<div style='transform: rotate(${windDeg}deg); color: red; font-size: 40px;'>&#8593;</div>\", iconSize: [40,40], iconAnchor: [20,20]})}).addTo(map);";
+    final jsCommand = '''
+      L.marker([$lat, $lon], {
+        icon: L.divIcon({
+          className: 'wind-arrow',
+          html: "<div class='arrow-wrapper' style='--deg:${windDeg}deg'><div class='arrow'>&#8593;</div></div>",
+          iconSize: [60, 60],
+          iconAnchor: [30, 30]
+        })
+      }).addTo(map);
+    ''';
     _webViewController.runJavaScript(jsCommand);
   }
 
