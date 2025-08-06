@@ -6,8 +6,21 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-      html, body { height: 100%; margin: 0; padding: 0; }
-      #map { height: 100%; width: 100%; }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+        width: 100%;
+      }
+      .wind-arrow {
+        background: none;
+        border: 0;
+        padding: 0;
+      }
       .wind-arrow .arrow-container {
         position: relative;
         transform-origin: center;
@@ -18,8 +31,12 @@
         animation: moveArrow 1s ease-in-out infinite alternate;
       }
       @keyframes moveArrow {
-        from { transform: translateY(0); }
-        to { transform: translateY(-10px); }
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-10px);
+        }
       }
     </style>
   </head>
@@ -27,6 +44,7 @@
     <div id="map"></div>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
     <script>
       // Initialize the map
       var map = L.map('map').setView([0, 0], 2);
@@ -40,7 +58,47 @@
       if (routeCoords && routeCoords.length > 0) {
         var bounds = L.latLngBounds(routeCoords);
         map.fitBounds(bounds, { padding: [20, 20] });
-        L.polyline(routeCoords, { color: 'blue', weight: 4 }).addTo(map);
+        const route = L.polyline(routeCoords, { color: 'blue', weight: 4 }).addTo(map);
+
+        const decorator = L.polylineDecorator(route, {
+          patterns: [
+            {
+              offset: 0,
+              repeat: 50,
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 10,
+                polygon: false,
+                pathOptions: {
+                  stroke: true,
+                  weight: 2,
+                  color: '#e74c3c',
+                  fillOpacity: 0
+                }
+              })
+            }
+          ]
+        }).addTo(map);
+
+        let offset = 0;
+        setInterval(() => {
+          offset = (offset + 1) % 50;
+          decorator.setPatterns([
+            {
+              offset,
+              repeat: 50,
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 10,
+                polygon: false,
+                pathOptions: {
+                  stroke: true,
+                  weight: 2,
+                  color: '#e74c3c',
+                  fillOpacity: 0
+                }
+              })
+            }
+          ]);
+        }, 60);
       }
     </script>
   </body>
