@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:active_commuter_support/app_initializer.dart';
 import 'package:active_commuter_support/screens/preferences_screen.dart';
 import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:active_commuter_support/services/preferences_service.dart';
@@ -342,6 +343,24 @@ class _DashboardScreenState extends State<DashboardScreen>
             //     ),
             //   ),
             // ),
+
+            // App Refresh Card
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                leading: const Icon(Icons.refresh),
+                title: const Text('Refresh App'),
+                subtitle:
+                    const Text('Restart the app and reload all data'),
+                onTap: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                        builder: (_) => const AppInitializer()),
+                    (route) => false,
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 16),
           ],
         ),
