@@ -32,6 +32,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _feedbackNotificationShown = false;
   bool _historySaved = false;
   Timer? _feedbackTimer;
+  DateTime? _pendingFeedbackSince;
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
@@ -51,9 +52,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   Future<void> _loadPrefs() async {
     final p = await _prefsService.loadPreferences();
     final feedbackGiven = await _prefsService.isEndFeedbackGivenToday();
+    final pendingSince = await _prefsService.getPendingFeedbackSince();
     setState(() {
       _prefs = p;
       _endFeedbackGiven = feedbackGiven;
+      _pendingFeedbackSince = pendingSince;
     });
   }
 
@@ -73,6 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       _feedbackSummary = 'You did a great job!';
       _lastReset = now;
       _prefsService.clearEndFeedbackGiven();
+      _prefsService.setPendingFeedback(null);
+      _pendingFeedbackSince = null;
       _feedbackNotificationShown = false;
       _historySaved = false;
     }
@@ -92,40 +97,48 @@ class _DashboardScreenState extends State<DashboardScreen>
     final start = _prefs!.commuteWindows.startLocal;
     final end = _prefs!.commuteWindows.endLocal;
 
-    // Show the feedback card one hour after the user's current route end time
-    final todayEnd =
-        DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    final showTime = todayEnd.add(const Duration(hours: 1));
-
-    // Hide the card one minute before the next route start time
     DateTime nextStart =
         DateTime(now.year, now.month, now.day, start.hour, start.minute);
-    if (now.isAfter(nextStart) || now.isAtSameMomentAs(nextStart)) {
+    if (!now.isBefore(nextStart)) {
       nextStart = nextStart.add(const Duration(days: 1));
     }
     final hideTime = nextStart.subtract(const Duration(minutes: 1));
 
-    // Reset feedback state once the hide window has passed so that
-    // a subsequent route can collect fresh feedback. This clears any
-    // stored flags even if the user dismissed the card without
-    // submitting feedback.
-    if (now.isAfter(hideTime) &&
-        (_endFeedbackGiven || _feedbackNotificationShown)) {
+    if (_pendingFeedbackSince != null) {
+      final expiry = _pendingFeedbackSince!.add(const Duration(hours: 1));
+      if (now.isAfter(hideTime) || now.isAfter(expiry)) {
+        _endFeedbackGiven = false;
+        _feedbackSummary = 'You did a great job!';
+        _feedbackNotificationShown = false;
+        _prefsService.clearEndFeedbackGiven();
+        _prefsService.setPendingFeedback(null);
+        _pendingFeedbackSince = null;
+        return false;
+      }
+      return true;
+    }
+
+    final todayEnd =
+        DateTime(now.year, now.month, now.day, end.hour, end.minute);
+    final expiry = todayEnd.add(const Duration(hours: 1));
+    if (now.isAfter(hideTime) || now.isAfter(expiry)) {
       _endFeedbackGiven = false;
       _feedbackSummary = 'You did a great job!';
       _feedbackNotificationShown = false;
       _prefsService.clearEndFeedbackGiven();
+      return false;
     }
 
-    return now.isAfter(showTime) && now.isBefore(hideTime);
+    return now.isAfter(todayEnd);
   }
 
   Future<void> _saveRideHistoryIfCompleted() async {
     if (_prefs == null || _historySaved) return;
     final now = DateTime.now();
     final end = _prefs!.commuteWindows.endLocal;
-    final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    if (!now.isAfter(todayEnd)) return;
+    final todayEnd =
+        DateTime(now.year, now.month, now.day, end.hour, end.minute);
+    if (!now.isAfter(todayEnd.add(const Duration(minutes: 1)))) return;
     final result = _alertKey.currentState?.result;
     if (result == null) return;
     final thresholdId = await _prefsService.getCurrentThresholdId();
@@ -234,8 +247,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                             setState(() {
                               _feedbackSummary = result['summary'] as String;
                               _endFeedbackGiven = true;
+                              _pendingFeedbackSince = null;
                             });
                             _prefsService.setEndFeedbackGiven(DateTime.now());
+                            _prefsService.setPendingFeedback(null);
                           }
                         },
                 ),
