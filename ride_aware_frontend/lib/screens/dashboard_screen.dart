@@ -5,6 +5,7 @@ import 'package:active_commuter_support/screens/preferences_screen.dart';
 import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:active_commuter_support/services/preferences_service.dart';
 import 'package:active_commuter_support/widgets/upcoming_commute_alert.dart';
+import 'package:active_commuter_support/widgets/standard_card.dart';
 import 'package:active_commuter_support/screens/post_ride_feedback_screen.dart';
 import 'package:active_commuter_support/screens/history_screen.dart';
 import 'package:active_commuter_support/services/api_service.dart';
@@ -222,9 +223,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
             // Commute Feedback Card
             if (showFeedback)
-              Card(
-                margin: const EdgeInsets.all(16),
+              StandardCard(
                 child: ListTile(
+                  contentPadding: EdgeInsets.zero,
                   leading: Icon(
                     Icons.feedback,
                     color: _endFeedbackGiven
@@ -268,9 +269,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               onThresholdUpdated: _loadPrefs,
             ),
 
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            StandardCard(
               child: ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.history,
                     color: Theme.of(context).colorScheme.primary),
                 title: const Text('Ride History'),
@@ -290,10 +291,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               future: _notificationService.areNotificationsEnabled(),
               builder: (context, snapshot) {
                 final enabled = snapshot.data ?? false;
-                return Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                return StandardCard(
                   child: SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
                     title: const Text('Enable weather alerts'),
                     secondary: Icon(Icons.notifications,
                         color: Theme.of(context).colorScheme.primary),
@@ -335,9 +335,9 @@ class _DashboardScreenState extends State<DashboardScreen>
             // ),
 
             // App Refresh Card
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            StandardCard(
               child: ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.refresh,
                     color: Theme.of(context).colorScheme.primary),
                 title: const Text('Refresh App'),
