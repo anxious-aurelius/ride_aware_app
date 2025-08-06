@@ -223,10 +223,14 @@ class _DashboardScreenState extends State<DashboardScreen>
             // Commute Feedback Card
             if (showFeedback)
               Card(
-                color: _endFeedbackGiven ? Colors.grey : Colors.red,
                 margin: const EdgeInsets.all(16),
                 child: ListTile(
-                  leading: const Icon(Icons.feedback, color: Colors.white),
+                  leading: Icon(
+                    Icons.feedback,
+                    color: _endFeedbackGiven
+                        ? Theme.of(context).colorScheme.secondary
+                        : Theme.of(context).colorScheme.error,
+                  ),
                   title: Text(
                     _endFeedbackGiven
                         ? 'Feedback submitted for your last ride'
@@ -267,7 +271,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: ListTile(
-                leading: const Icon(Icons.history),
+                leading: Icon(Icons.history,
+                    color: Theme.of(context).colorScheme.primary),
                 title: const Text('Ride History'),
                 subtitle: const Text('View your last 30 days of rides'),
                 onTap: () {
@@ -281,74 +286,30 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
 
-            // Notification Status Card
-            Card(
-              margin: const EdgeInsets.all(16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.notifications_active,
-                      size: 48,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Notifications',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FutureBuilder<bool>(
-                      future: _notificationService.areNotificationsEnabled(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          final enabled = snapshot.data!;
-                          return Column(
-                            children: [
-                              Text(
-                                enabled
-                                    ? 'Weather alerts are enabled'
-                                    : 'Weather alerts are disabled',
-                                style: TextStyle(
-                                  color: enabled ? Colors.green : Colors.orange,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              if (!enabled) ...[
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    final granted = await _notificationService
-                                        .requestPermissions();
-                                    if (granted) {
-                                      setState(() {}); // Refresh the UI
-                                    }
-                                  },
-                                  child: const Text('Enable Notifications'),
-                                ),
-                              ],
-                            ],
-                          );
-                        }
-                        return const CircularProgressIndicator();
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    if (_notificationService.fcmToken != null)
-                      Text(
-                        'Token: ${_notificationService.fcmToken!.substring(0, 20)}...',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+            FutureBuilder<bool>(
+              future: _notificationService.areNotificationsEnabled(),
+              builder: (context, snapshot) {
+                final enabled = snapshot.data ?? false;
+                return Card(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: SwitchListTile(
+                    title: const Text('Enable weather alerts'),
+                    secondary: Icon(Icons.notifications,
+                        color: Theme.of(context).colorScheme.primary),
+                    value: enabled,
+                    onChanged: (value) async {
+                      if (value) {
+                        final granted =
+                            await _notificationService.requestPermissions();
+                        if (granted) setState(() {});
+                      } else {
+                        // No direct way to revoke permissions; just ignore
+                      }
+                    },
+                  ),
+                );
+              },
             ),
 
             // // Feedback Summary Card
@@ -377,7 +338,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: ListTile(
-                leading: const Icon(Icons.refresh),
+                leading: Icon(Icons.refresh,
+                    color: Theme.of(context).colorScheme.primary),
                 title: const Text('Refresh App'),
                 subtitle:
                     const Text('Restart the app and reload all data'),

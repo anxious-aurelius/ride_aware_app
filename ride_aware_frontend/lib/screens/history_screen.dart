@@ -58,6 +58,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
               });
               _loadHistory();
             },
+            calendarStyle: CalendarStyle(
+              selectedDecoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+              todayDecoration: BoxDecoration(
+                color:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                shape: BoxShape.circle,
+              ),
+              markerDecoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondary,
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           Expanded(
@@ -68,15 +83,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemBuilder: (context, index) {
                       final e = entries[index];
                       return Card(
-                        margin:
-                            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
                         child: ListTile(
-                          leading: _statusIcon(e.status),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          leading: _feedbackIcon(e),
                           title: Text(
-                              '${_formatTime(e.startTime)}–${_formatTime(e.endTime)}'),
+                            '${_formatTime(e.startTime)}–${_formatTime(e.endTime)}',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           subtitle: Text(
                             e.feedback ??
                                 'Next time you should give feedback to improve your experience.',
+                            style:
+                                Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
                       );
@@ -91,14 +113,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  Icon _statusIcon(String status) {
-    switch (status) {
-      case 'alert':
-        return const Icon(Icons.warning, color: Colors.red);
-      case 'warning':
-        return const Icon(Icons.report_problem, color: Colors.orange);
-      default:
-        return const Icon(Icons.check_circle, color: Colors.green);
+  Widget _feedbackIcon(RideHistoryEntry entry) {
+    if (entry.feedback != null && entry.feedback!.isNotEmpty) {
+      return Icon(Icons.check_circle,
+          color: Theme.of(context).colorScheme.secondary);
     }
+    return Icon(Icons.info,
+        color: Theme.of(context).colorScheme.onSurfaceVariant);
   }
 }
