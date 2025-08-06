@@ -35,6 +35,7 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
   String? error;
   bool needsCommuteTime = false;
   CommuteAlertResult? result;
+  List<Map<String, dynamic>>? hourlyForecasts;
 
   Future<void> load() async {
     isLoading = true;
@@ -59,6 +60,10 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
       final sampled = _sampleRoute(route);
       final evaluation = await _forecastService.evaluateRoute(
           sampled, targetTime, prefs.weatherLimits);
+      hourlyForecasts = await _forecastService.getNextHoursForecast(
+          route.startLocation.latitude,
+          route.startLocation.longitude,
+          6);
       result = CommuteAlertResult(
         time: targetTime,
         limits: prefs.weatherLimits,
