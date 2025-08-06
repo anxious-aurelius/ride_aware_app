@@ -21,12 +21,11 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
         end_time,
     )
 
-    # Use only the unique index fields in the filter to avoid duplicate key
-    # errors when the end time changes for an existing threshold window.
     filter_doc = {
         "device_id": device_id,
         "date": date,
         "start_time": start_time,
+        "end_time": end_time,
     }
 
     result = await thresholds_collection.update_one(
@@ -59,9 +58,7 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
     }
 
 
-async def get_thresholds(
-    device_id: str, date: str, start_time: str, end_time: str
-) -> dict:
+async def get_thresholds(device_id: str, date: str, start_time: str, end_time: str) -> dict:
     logger.info(
         "Retrieving thresholds for device %s on %s from %s to %s",
         device_id,
@@ -90,3 +87,4 @@ async def get_thresholds(
     # Remove _id and validate through model
     doc.pop("_id", None)
     return Thresholds(**doc).model_dump(mode="json")
+

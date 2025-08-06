@@ -10,7 +10,6 @@ class PreferencesService {
   static const String _prefsVersionKey = 'prefsVersion';
   static const String _lastEndFeedbackKey = 'lastEndFeedback';
   static const String _currentThresholdIdKey = 'currentThresholdId';
-  static const String _pendingFeedbackKey = 'pendingFeedback';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
 
@@ -85,7 +84,6 @@ class PreferencesService {
     await prefs.remove(_thresholdsSetKey);
     await prefs.remove(_prefsVersionKey);
     await prefs.remove(_currentThresholdIdKey);
-    await prefs.remove(_pendingFeedbackKey);
   }
 
   // Check if preferences exist in storage
@@ -124,19 +122,5 @@ class PreferencesService {
   Future<String?> getCurrentThresholdId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_currentThresholdIdKey);
-  }
-
-  Future<void> setPendingFeedback(bool pending) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (pending) {
-      await prefs.setBool(_pendingFeedbackKey, true);
-    } else {
-      await prefs.remove(_pendingFeedbackKey);
-    }
-  }
-
-  Future<bool> hasPendingFeedback() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_pendingFeedbackKey) ?? false;
   }
 }
