@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from models.thresholds import Thresholds
 from services.db import thresholds_collection
 from controllers.feedback_controller import create_feedback_entry
+from controllers.ride_history_controller import create_history_entry
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,11 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
         threshold_id = insert_result.inserted_id
         result = insert_result
 
-    await create_feedback_entry(device_id, str(threshold_id))
+    threshold_id_str = str(threshold_id)
+    await create_feedback_entry(device_id, threshold_id_str)
+    await create_history_entry(
+        device_id, threshold_id_str, date, start_time, end_time
+    )
 
     logger.info(
         "Thresholds upserted for device %s on %s from %s to %s",
@@ -61,10 +66,9 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
         "date": date,
         "start_time": start_time,
         "end_time": end_time,
-        "threshold_id": str(threshold_id),
+        "threshold_id": threshold_id_str,
         "status": "ok",
         "modified_count": getattr(result, "modified_count", None),
-        "upserted_id": str(getattr(result, "upserted_id", "")) or None,
     }
 
 

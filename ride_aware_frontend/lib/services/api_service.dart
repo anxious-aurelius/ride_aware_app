@@ -70,7 +70,7 @@ class ApiService {
       String? thresholdId;
       if (response.body.isNotEmpty) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        thresholdId = data['upserted_id'] as String? ?? data['threshold_id'] as String?;
+        thresholdId = data['threshold_id'] as String?;
         if (thresholdId != null) {
           await _preferencesService.saveCurrentThresholdId(thresholdId);
         }
