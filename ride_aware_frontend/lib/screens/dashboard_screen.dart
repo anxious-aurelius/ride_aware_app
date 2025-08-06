@@ -6,6 +6,7 @@ import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:active_commuter_support/services/preferences_service.dart';
 import 'package:active_commuter_support/widgets/upcoming_commute_alert.dart';
 import 'package:active_commuter_support/widgets/standard_card.dart';
+import 'package:active_commuter_support/widgets/standard_list_tile.dart';
 import 'package:active_commuter_support/screens/post_ride_feedback_screen.dart';
 import 'package:active_commuter_support/screens/history_screen.dart';
 import 'package:active_commuter_support/services/api_service.dart';
@@ -269,22 +270,18 @@ class _DashboardScreenState extends State<DashboardScreen>
               onThresholdUpdated: _loadPrefs,
             ),
 
-            StandardCard(
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.history,
-                    color: Theme.of(context).colorScheme.primary),
-                title: const Text('Ride History'),
-                subtitle: const Text('View your last 30 days of rides'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const HistoryScreen(),
-                    ),
-                  );
-                },
-              ),
+            StandardListTile(
+              icon: Icons.history,
+              title: 'Ride History',
+              subtitle: 'View your last 30 days of rides',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const HistoryScreen(),
+                  ),
+                );
+              },
             ),
 
             FutureBuilder<bool>(
@@ -335,22 +332,16 @@ class _DashboardScreenState extends State<DashboardScreen>
             // ),
 
             // App Refresh Card
-            StandardCard(
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.refresh,
-                    color: Theme.of(context).colorScheme.primary),
-                title: const Text('Refresh App'),
-                subtitle:
-                    const Text('Restart the app and reload all data'),
-                onTap: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                        builder: (_) => const AppInitializer()),
-                    (route) => false,
-                  );
-                },
-              ),
+            StandardListTile(
+              icon: Icons.refresh,
+              title: 'Refresh App',
+              subtitle: 'Restart the app and reload all data',
+              onTap: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AppInitializer()),
+                  (route) => false,
+                );
+              },
             ),
             const SizedBox(height: 16),
           ],

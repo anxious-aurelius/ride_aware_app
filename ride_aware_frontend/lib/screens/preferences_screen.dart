@@ -628,10 +628,11 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             const SizedBox(height: 16),
             _buildNumberField(
               controller: _windSpeedController,
-              label: 'Max wind speed (km/h)',
-              helperText: '0 – 200 km/h',
+              label: 'Max wind speed',
+              helperText: '0 – 200',
               min: 0,
               max: 200,
+              unit: 'km/h',
             ),
             const SizedBox(height: 16),
             Column(
@@ -682,19 +683,21 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             const SizedBox(height: 16),
             _buildNumberField(
               controller: _rainIntensityController,
-              label: 'Max rain intensity (mm/h)',
-              helperText: '0 – 50 mm/h',
+              label: 'Max rain intensity',
+              helperText: '0 – 50',
               min: 0,
               max: 50,
               allowDecimals: true,
+              unit: 'mm/h',
             ),
             const SizedBox(height: 16),
             _buildNumberField(
               controller: _humidityController,
-              label: 'Max humidity (%)',
-              helperText: '0 – 100%',
+              label: 'Max humidity',
+              helperText: '0 – 100',
               min: 0,
               max: 100,
+              unit: '%',
             ),
             const SizedBox(height: 16),
             Row(
@@ -702,20 +705,22 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 Expanded(
                   child: _buildNumberField(
                     controller: _minTemperatureController,
-                    label: 'Min temperature (°C)',
-                    helperText: '-50 – 60°C',
+                    label: 'Min temperature',
+                    helperText: '-50 – 60',
                     min: -50,
                     max: 60,
+                    unit: '°C',
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildNumberField(
                     controller: _maxTemperatureController,
-                    label: 'Max temperature (°C)',
-                    helperText: '-50 – 60°C',
+                    label: 'Max temperature',
+                    helperText: '-50 – 60',
                     min: -50,
                     max: 60,
+                    unit: '°C',
                   ),
                 ),
               ],
@@ -740,18 +745,20 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             const SizedBox(height: 16),
             _buildNumberField(
               controller: _visibilityController,
-              label: 'Min visibility (m)',
-              helperText: '0 – 10000 m',
+              label: 'Min visibility',
+              helperText: '0 – 10000',
               min: 0,
               max: 10000,
+              unit: 'm',
             ),
             const SizedBox(height: 16),
             _buildNumberField(
               controller: _pollutionController,
-              label: 'Max pollution (AQI)',
-              helperText: '0 – 500 AQI',
+              label: 'Max pollution',
+              helperText: '0 – 500',
               min: 0,
               max: 500,
+              unit: 'AQI',
             ),
             const SizedBox(height: 16),
             _buildNumberField(
@@ -1020,6 +1027,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     required double min,
     required double max,
     bool allowDecimals = false,
+    String? unit,
   }) {
     return TextFormField(
       controller: controller,
@@ -1036,6 +1044,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       decoration: InputDecoration(
         labelText: label,
         helperText: helperText,
+        suffixText: unit,
         border: const OutlineInputBorder(),
       ),
       validator: (value) {
@@ -1074,16 +1083,16 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
-      child: FilledButton(
+      child: FilledButton.icon(
         onPressed:
             (_isSubmitting ||
-                _isGettingLocation ||
-                _isFetchingRoute ||
-                _routePolylinePoints.isEmpty)
-            ? null
-            : _submitPreferencesAndRoute,
+                    _isGettingLocation ||
+                    _isFetchingRoute ||
+                    _routePolylinePoints.isEmpty)
+                ? null
+                : _submitPreferencesAndRoute,
         style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-        child: _isSubmitting
+        icon: _isSubmitting
             ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -1092,7 +1101,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                   color: Colors.white,
                 ),
               )
-            : const Text('Save preferences and Route'),
+            : const Icon(Icons.save),
+        label: Text(_isSubmitting ? 'Saving...' : 'Save'),
       ),
     );
   }
