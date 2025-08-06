@@ -6,8 +6,8 @@ from controllers import threshold_controller
 from models.thresholds import Thresholds, WeatherLimits, OfficeLocation
 
 
-def test_upsert_threshold(monkeypatch):
-    thresholds = Thresholds(
+def _sample_thresholds() -> Thresholds:
+    return Thresholds(
         device_id="device123",
         date="2024-01-01",
         start_time="08:00",
@@ -24,11 +24,55 @@ def test_upsert_threshold(monkeypatch):
         ),
         office_location=OfficeLocation(latitude=0, longitude=0),
     )
-    result_obj = type("R", (), {"modified_count": 1, "upserted_id": "id"})()
-    collection = type("C", (), {"update_one": AsyncMock(return_value=result_obj)})()
+
+
+def test_upsert_threshold_insert(monkeypatch):
+    thresholds = _sample_thresholds()
+    collection = type(
+        "C",
+        (),
+        {
+            "find_one": AsyncMock(return_value=None),
+            "insert_one": AsyncMock(
+                return_value=type("R", (), {"inserted_id": "id", "modified_count": 0})()
+            ),
+        },
+    )()
     monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
+    create_fb = AsyncMock()
+    monkeypatch.setattr(threshold_controller, "create_feedback_entry", create_fb)
+
     result = asyncio.run(threshold_controller.upsert_threshold(thresholds))
-    collection.update_one.assert_called_once()
+
+    collection.find_one.assert_awaited_once()
+    collection.insert_one.assert_awaited_once()
+    create_fb.assert_awaited_once_with("device123", "id")
+    assert result["threshold_id"] == "id"
+    assert result["status"] == "ok"
+
+
+def test_upsert_threshold_update(monkeypatch):
+    thresholds = _sample_thresholds()
+    collection = type(
+        "C",
+        (),
+        {
+            "find_one": AsyncMock(return_value={"_id": "existing"}),
+            "update_one": AsyncMock(
+                return_value=type("R", (), {"modified_count": 1, "upserted_id": None})()
+            ),
+        },
+    )()
+    monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
+    create_fb = AsyncMock()
+    monkeypatch.setattr(threshold_controller, "create_feedback_entry", create_fb)
+
+    result = asyncio.run(threshold_controller.upsert_threshold(thresholds))
+
+    collection.find_one.assert_awaited_once()
+    collection.update_one.assert_awaited_once()
+    create_fb.assert_awaited_once_with("device123", "existing")
+    assert result["threshold_id"] == "existing"
     assert result["status"] == "ok"
 
 
