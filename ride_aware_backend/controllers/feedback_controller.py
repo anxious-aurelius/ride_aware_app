@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from models.feedback import Feedback
 from services.db import feedback_collection, ride_history_collection
 
@@ -31,3 +32,19 @@ async def save_feedback(feedback: Feedback) -> dict:
         "modified_count": getattr(result, "modified_count", None),
         "upserted_id": str(getattr(result, "upserted_id", "")) or None,
     }
+
+
+async def create_feedback_entry(device_id: str, threshold_id: str) -> None:
+    """Create an empty ride feedback entry for a given threshold.
+
+    This placeholder allows attaching user feedback at a later time while
+    ensuring only one feedback document exists per threshold.
+    """
+    doc = {
+        "device_id": device_id,
+        "threshold_id": threshold_id,
+        "created_at": datetime.utcnow().isoformat(),
+    }
+    await feedback_collection.update_one(
+        {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True
+    )

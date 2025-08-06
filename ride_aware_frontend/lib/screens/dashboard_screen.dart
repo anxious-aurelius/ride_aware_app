@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:active_commuter_support/screens/preferences_screen.dart';
 import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:active_commuter_support/services/preferences_service.dart';
@@ -28,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   DateTime _lastReset = DateTime.now();
   bool _feedbackNotificationShown = false;
   bool _historySaved = false;
+  Timer? _feedbackTimer;
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
@@ -40,6 +43,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _alertKey.currentState?.refreshForecast();
     });
+    _feedbackTimer =
+        Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
   }
 
   Future<void> _loadPrefs() async {
@@ -54,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _feedbackTimer?.cancel();
     super.dispose();
   }
 
@@ -82,9 +88,18 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (_prefs == null) return false;
     final now = DateTime.now();
     final end = _prefs!.commuteWindows.endLocal;
+    final start = _prefs!.commuteWindows.startLocal;
+
     final todayEnd = DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    final expiry = todayEnd.add(const Duration(hours: 1));
-    return now.isAfter(todayEnd) && now.isBefore(expiry);
+    final showTime = todayEnd.add(const Duration(hours: 1));
+
+    var nextStart = DateTime(now.year, now.month, now.day, start.hour, start.minute);
+    if (!now.isBefore(nextStart)) {
+      nextStart = nextStart.add(const Duration(days: 1));
+    }
+    final hideTime = nextStart.subtract(const Duration(minutes: 1));
+
+    return now.isAfter(showTime) && now.isBefore(hideTime);
   }
 
   Future<void> _saveRideHistoryIfCompleted() async {
