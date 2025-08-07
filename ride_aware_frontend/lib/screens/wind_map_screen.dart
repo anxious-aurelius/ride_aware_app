@@ -36,10 +36,10 @@ class _WindMapScreenState extends State<WindMapScreen> {
 
   Future<void> _loadInitialHtml() async {
     String html = await rootBundle.loadString('assets/wind_map.html');
-    List<List<double>> coords =
-        widget.routePoints.map((p) => [p.latitude, p.longitude]).toList();
-    html =
-        html.replaceFirst('ROUTE_COORDS_PLACEHOLDER', jsonEncode(coords));
+    List<List<double>> coords = widget.routePoints
+        .map((p) => [p.latitude, p.longitude])
+        .toList();
+    html = html.replaceFirst('ROUTE_COORDS_PLACEHOLDER', jsonEncode(coords));
     await _webViewController.loadHtmlString(html);
   }
 
@@ -48,10 +48,12 @@ class _WindMapScreenState extends State<WindMapScreen> {
         .map((p) => {'lat': p.latitude, 'lon': p.longitude})
         .toList();
     try {
-      final uri = Uri.parse('http://127.0.0.1:8000/wind-directions');
-      final response = await http.post(uri,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'points': coords}));
+      final uri = Uri.parse('http://81.17.60.64:8888/wind-directions');
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'points': coords}),
+      );
       if (response.statusCode == 200) {
         List<dynamic> windDataList = jsonDecode(response.body);
         for (var item in windDataList) {
@@ -69,7 +71,8 @@ class _WindMapScreenState extends State<WindMapScreen> {
   }
 
   void _addWindArrow(double lat, double lon, double windDeg) {
-    final jsCommand = '''
+    final jsCommand =
+        '''
       L.marker([$lat, $lon], {
         icon: L.divIcon({
           className: 'leaflet-div-icon wind-arrow',

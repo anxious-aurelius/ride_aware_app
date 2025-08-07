@@ -22,7 +22,7 @@ class AppTheme {
         onSurface: onSurface,
       ),
       scaffoldBackgroundColor: surface,
-      cardTheme: const CardTheme(
+      cardTheme: const CardThemeData(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -35,4 +35,3 @@ class AppTheme {
     );
   }
 }
-
