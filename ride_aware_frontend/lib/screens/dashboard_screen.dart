@@ -32,12 +32,45 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _endFeedbackGiven = false;
   DateTime _lastReset = DateTime.now();
   bool _feedbackNotificationShown = false;
-  bool _historySaved = false;
-  Timer? _feedbackTimer;
+  RideSlot? _pendingRide; // last completed, no feedback yet
+  RideSlot? _nextRide; // immediate next route after the pending one
+  Timer? _tick;
   DateTime? _pendingFeedbackSince;
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
+
+  class RideSlot {
+    final String rideId;
+    final DateTime startUtc;
+    final DateTime endUtc;
+    final Map<String, dynamic>? threshold;
+    final List<Map<String, dynamic>> weather;
+
+    RideSlot({
+      required this.rideId,
+      required this.startUtc,
+      required this.endUtc,
+      this.threshold,
+      this.weather = const [],
+    });
+  }
+
+  class FeedbackWindow {
+    final DateTime showAt; // end + 1h (local)
+    final DateTime? hideAt; // next start - 1m (local), or null if unknown
+    FeedbackWindow({required this.showAt, this.hideAt});
+  }
+
+  FeedbackWindow _windowFor(RideSlot current, RideSlot? next) {
+    final showAt = current.endUtc.toLocal().add(const Duration(hours: 1));
+    final hideAt = next == null
+        ? null
+        : next.startUtc.toLocal().subtract(const Duration(minutes: 1));
+    return FeedbackWindow(showAt: showAt, hideAt: hideAt);
+  }
+
+  bool _isAfter(DateTime now, DateTime? t) => t != null && now.isAfter(t);
 
   @override
   void initState() {
@@ -47,8 +80,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _alertKey.currentState?.refreshForecast();
     });
-    _feedbackTimer =
-        Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
+    _tick = Timer.periodic(const Duration(seconds: 20), (_) {
+      setState(() {}); // just to re-evaluate shouldShowFeedback
+    });
   }
 
   Future<void> _loadPrefs() async {
@@ -65,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _feedbackTimer?.cancel();
+    _tick?.cancel();
     super.dispose();
   }
 
@@ -82,7 +116,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       _prefsService.setPendingFeedbackThresholdId(null);
       _pendingFeedbackSince = null;
       _feedbackNotificationShown = false;
-      _historySaved = false;
     }
   }
 
@@ -93,121 +126,42 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  bool _shouldShowFeedbackCard() {
-    if (_prefs == null) return false;
+  bool _hasSubmitted(String rideId) {
+    _prefsService.getFeedbackSubmitted(rideId).then((v) {
+      if (mounted && v != _endFeedbackGiven) {
+        setState(() => _endFeedbackGiven = v);
+      }
+    });
+    return _endFeedbackGiven;
+  }
 
+  bool _shouldShowFeedbackCard() {
     final now = DateTime.now();
 
-    final startTod = _prefs!.commuteWindows.startLocal;
-    final endTod = _prefs!.commuteWindows.endLocal;
+    if (_pendingRide == null) return false;
+    if (_hasSubmitted(_pendingRide!.rideId)) return false;
 
-    DateTime nextStartLocal = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      startTod.hour,
-      startTod.minute,
-    );
-    if (!now.isBefore(nextStartLocal)) {
-      nextStartLocal = nextStartLocal.add(const Duration(days: 1));
-    }
-    final hideTime = nextStartLocal.subtract(const Duration(minutes: 1));
+    final win = _windowFor(_pendingRide!, _nextRide);
 
-    DateTime prevEndLocal = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      endTod.hour,
-      endTod.minute,
-    );
-    if (!now.isAfter(prevEndLocal)) {
-      prevEndLocal = prevEndLocal.subtract(const Duration(days: 1));
-    }
-    final showTime = prevEndLocal.add(const Duration(hours: 1));
-
-    if (now.isAfter(hideTime)) {
-      _endFeedbackGiven = false;
-      _feedbackSummary = 'You did a great job!';
-      _feedbackNotificationShown = false;
-      _prefsService.clearEndFeedbackGiven();
+    if (_isAfter(now, win.hideAt)) {
       _prefsService.setPendingFeedback(null);
       _prefsService.setPendingFeedbackThresholdId(null);
       _pendingFeedbackSince = null;
       return false;
     }
 
-    if (_pendingFeedbackSince == null && now.isAfter(showTime)) {
+    final shouldShow = !now.isBefore(win.showAt);
+    if (shouldShow && _pendingFeedbackSince == null) {
       _pendingFeedbackSince = now;
       _prefsService.setPendingFeedback(now);
+      _prefsService.setPendingFeedbackThresholdId(_pendingRide!.rideId);
     }
-
-    return _pendingFeedbackSince != null && now.isAfter(showTime);
-  }
-
-  Future<void> _saveRideHistoryIfCompleted() async {
-    if (_prefs == null || _historySaved) return;
-
-    final now = DateTime.now();
-
-    final startTod = _prefs!.commuteWindows.startLocal;
-    final endTod = _prefs!.commuteWindows.endLocal;
-
-    final todayEndLocal = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      endTod.hour,
-      endTod.minute,
-    );
-
-    if (!now.isAfter(todayEndLocal.add(const Duration(minutes: 1)))) return;
-
-    final result = _alertKey.currentState?.result;
-    if (result == null) return;
-
-    final thresholdId = await _prefsService.getCurrentThresholdId();
-    if (thresholdId == null) return;
-
-    final startLocal = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      startTod.hour,
-      startTod.minute,
-    );
-    final endLocal = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      endTod.hour,
-      endTod.minute,
-    );
-
-    final startUtc = startLocal.toUtc();
-    final endUtc = endLocal.toUtc();
-
-    final entry = RideHistoryEntry(
-      rideId: thresholdId,
-      startUtc: startUtc,
-      endUtc: endUtc,
-      status: result.status,
-      summary: result.summary,
-      threshold: null, // TODO: fill your threshold map if you have it
-      feedback: null,
-      weather: const [], // TODO: populate with snapshots if available
-    );
-    try {
-      await _apiService.saveRideHistoryEntry(entry);
-      _historySaved = true;
-    } catch (_) {
-      // Ignore network errors for now
-    }
+    return shouldShow;
   }
 
   @override
   Widget build(BuildContext context) {
     _resetFlagsIfNewDay();
-    _saveRideHistoryIfCompleted();
     final showFeedback = _shouldShowFeedbackCard();
     if (showFeedback && !_endFeedbackGiven && !_feedbackNotificationShown) {
       _notificationService.showFeedbackNotification();
@@ -295,6 +249,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                             setState(() {
                               _feedbackSummary = result['summary'] as String;
                               _endFeedbackGiven = true;
+                              if (_pendingRide != null) {
+                                _prefsService.setFeedbackSubmitted(
+                                    _pendingRide!.rideId, true);
+                              }
                               _pendingFeedbackSince = null;
                             });
                             _prefsService.setEndFeedbackGiven(DateTime.now());
@@ -310,6 +268,50 @@ class _DashboardScreenState extends State<DashboardScreen>
               key: _alertKey,
               feedbackSummary: _feedbackSummary,
               onThresholdUpdated: _loadPrefs,
+
+              onRideStarted: (
+                  String rideId, DateTime startUtc, Map<String, dynamic> threshold) async {
+                // No-op for now; could persist active ride
+              },
+
+              onRideEnded: (
+                  String rideId,
+                  DateTime startUtc,
+                  DateTime endUtc,
+                  String status,
+                  Map<String, dynamic> summary,
+                  Map<String, dynamic> threshold,
+                  List<Map<String, dynamic>> weatherHistory) async {
+                final entry = RideHistoryEntry(
+                  rideId: rideId,
+                  startUtc: startUtc,
+                  endUtc: endUtc,
+                  status: status,
+                  summary: summary,
+                  threshold: threshold,
+                  feedback: null,
+                  weather: weatherHistory,
+                );
+                try {
+                  await _apiService.saveRideHistoryEntry(entry);
+                } catch (_) {}
+
+                setState(() {
+                  _pendingRide = RideSlot(
+                    rideId: rideId,
+                    startUtc: startUtc,
+                    endUtc: endUtc,
+                    threshold: threshold,
+                    weather: weatherHistory,
+                  );
+                  _nextRide = null; // will be filled later if available
+                  _endFeedbackGiven = false;
+                  _pendingFeedbackSince = null;
+                  _feedbackNotificationShown = false;
+                });
+
+                // Optionally fetch next scheduled route here
+              },
             ),
 
             StandardListTile(

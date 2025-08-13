@@ -36,11 +36,23 @@ class _StatusInfo {
 class UpcomingCommuteAlert extends StatefulWidget {
   final String feedbackSummary;
   final Future<void> Function()? onThresholdUpdated;
+  final Future<void> Function(String rideId, DateTime startUtc,
+      Map<String, dynamic> threshold)? onRideStarted;
+  final Future<void> Function(
+      String rideId,
+      DateTime startUtc,
+      DateTime endUtc,
+      String status,
+      Map<String, dynamic> summary,
+      Map<String, dynamic> threshold,
+      List<Map<String, dynamic>> weatherHistory)? onRideEnded;
 
   const UpcomingCommuteAlert({
     super.key,
     this.feedbackSummary = 'You did a great job!',
     this.onThresholdUpdated,
+    this.onRideStarted,
+    this.onRideEnded,
   });
 
   @override
