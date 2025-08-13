@@ -95,24 +95,35 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   bool _shouldShowFeedbackCard() {
     if (_prefs == null) return false;
+
     final now = DateTime.now();
 
-    final start = _prefs!.commuteWindows.startLocal;
-    final end = _prefs!.commuteWindows.endLocal;
+    final startTod = _prefs!.commuteWindows.startLocal;
+    final endTod = _prefs!.commuteWindows.endLocal;
 
-    DateTime nextStart =
-        DateTime(now.year, now.month, now.day, start.hour, start.minute);
-    if (!now.isBefore(nextStart)) {
-      nextStart = nextStart.add(const Duration(days: 1));
+    DateTime nextStartLocal = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      startTod.hour,
+      startTod.minute,
+    );
+    if (!now.isBefore(nextStartLocal)) {
+      nextStartLocal = nextStartLocal.add(const Duration(days: 1));
     }
-    final hideTime = nextStart.subtract(const Duration(minutes: 1));
+    final hideTime = nextStartLocal.subtract(const Duration(minutes: 1));
 
-    DateTime prevEnd =
-        DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    if (!now.isAfter(prevEnd)) {
-      prevEnd = prevEnd.subtract(const Duration(days: 1));
+    DateTime prevEndLocal = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      endTod.hour,
+      endTod.minute,
+    );
+    if (!now.isAfter(prevEndLocal)) {
+      prevEndLocal = prevEndLocal.subtract(const Duration(days: 1));
     }
-    final showTime = prevEnd.add(const Duration(hours: 1));
+    final showTime = prevEndLocal.add(const Duration(hours: 1));
 
     if (now.isAfter(hideTime)) {
       _endFeedbackGiven = false;
@@ -135,34 +146,55 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _saveRideHistoryIfCompleted() async {
     if (_prefs == null || _historySaved) return;
+
     final now = DateTime.now();
-    final end = _prefs!.commuteWindows.endLocal;
-    final todayEnd =
-        DateTime(now.year, now.month, now.day, end.hour, end.minute);
-    if (!now.isAfter(todayEnd.add(const Duration(minutes: 1)))) return;
+
+    final startTod = _prefs!.commuteWindows.startLocal;
+    final endTod = _prefs!.commuteWindows.endLocal;
+
+    final todayEndLocal = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      endTod.hour,
+      endTod.minute,
+    );
+
+    if (!now.isAfter(todayEndLocal.add(const Duration(minutes: 1)))) return;
+
     final result = _alertKey.currentState?.result;
     if (result == null) return;
+
     final thresholdId = await _prefsService.getCurrentThresholdId();
     if (thresholdId == null) return;
 
-    final start = DateTime(now.year, now.month, now.day,
-            _prefs!.commuteWindows.startLocal.hour,
-            _prefs!.commuteWindows.startLocal.minute)
-        .toUtc();
-    final end = DateTime(now.year, now.month, now.day,
-            _prefs!.commuteWindows.endLocal.hour,
-            _prefs!.commuteWindows.endLocal.minute)
-        .toUtc();
+    final startLocal = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      startTod.hour,
+      startTod.minute,
+    );
+    final endLocal = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      endTod.hour,
+      endTod.minute,
+    );
+
+    final startUtc = startLocal.toUtc();
+    final endUtc = endLocal.toUtc();
 
     final entry = RideHistoryEntry(
       rideId: thresholdId,
-      startUtc: start,
-      endUtc: end,
+      startUtc: startUtc,
+      endUtc: endUtc,
       status: result.status,
       summary: result.summary,
-      threshold: null,
+      threshold: null, // TODO: fill your threshold map if you have it
       feedback: null,
-      weather: const [],
+      weather: const [], // TODO: populate with snapshots if available
     );
     try {
       await _apiService.saveRideHistoryEntry(entry);
