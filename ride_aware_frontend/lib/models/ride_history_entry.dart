@@ -1,53 +1,74 @@
-import 'package:flutter/material.dart';
-import 'user_preferences.dart';
-
 class RideHistoryEntry {
-  final String thresholdId;
-  final DateTime date;
-  final TimeOfDay startTime;
-  final TimeOfDay endTime;
+  final String rideId;
+  final DateTime startUtc;
+  final DateTime endUtc;
   final String status;
   final Map<String, dynamic> summary;
+  final Map<String, dynamic>? threshold;
   final String? feedback;
-  final List<Map<String, dynamic>> weatherHistory;
+  final List<WeatherPoint> weather;
 
   RideHistoryEntry({
-    required this.thresholdId,
-    required this.date,
-    required this.startTime,
-    required this.endTime,
+    required this.rideId,
+    required this.startUtc,
+    required this.endUtc,
     required this.status,
     required this.summary,
+    this.threshold,
     this.feedback,
-    this.weatherHistory = const [],
+    required this.weather,
   });
 
+  DateTime get localDate => startUtc.toLocal();
+
   factory RideHistoryEntry.fromJson(Map<String, dynamic> json) {
-    final cw = CommuteWindows.defaultValues();
     return RideHistoryEntry(
-      thresholdId: json['threshold_id'] as String,
-      date: DateTime.parse(json['date'] as String).toLocal(),
-      startTime: cw.utcToLocalTimeOfDay(json['start_time'] as String),
-      endTime: cw.utcToLocalTimeOfDay(json['end_time'] as String),
+      rideId: json['ride_id'] as String,
+      startUtc: DateTime.parse(json['start_utc'] as String),
+      endUtc: DateTime.parse(json['end_utc'] as String),
       status: json['status'] as String,
       summary: Map<String, dynamic>.from(json['summary'] as Map),
+      threshold: json['threshold'] == null
+          ? null
+          : Map<String, dynamic>.from(json['threshold'] as Map),
       feedback: json['feedback'] as String?,
-      weatherHistory: (json['weather_history'] as List? ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map))
+      weather: (json['weather_history'] as List? ?? [])
+          .map((e) => WeatherPoint.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'threshold_id': thresholdId,
-        'date': date.toUtc().toIso8601String().split('T').first,
-        'start_time': CommuteWindows.localTimeOfDayToUtc(startTime),
-        'end_time': CommuteWindows.localTimeOfDayToUtc(endTime),
+        'ride_id': rideId,
+        'start_utc': startUtc.toUtc().toIso8601String(),
+        'end_utc': endUtc.toUtc().toIso8601String(),
         'status': status,
         'summary': summary,
+        if (threshold != null) 'threshold': threshold,
         if (feedback != null) 'feedback': feedback,
-        if (weatherHistory.isNotEmpty) 'weather_history': weatherHistory,
+        if (weather.isNotEmpty)
+          'weather_history': weather.map((w) => w.toJson()).toList(),
       };
+}
 
-  // No additional helpers needed; conversions handled by [CommuteWindows].
+class WeatherPoint {
+  final DateTime tsUtc;
+  final num? tempC;
+  final num? windMs;
+  final String? cond;
+  WeatherPoint({required this.tsUtc, this.tempC, this.windMs, this.cond});
+
+  factory WeatherPoint.fromJson(Map<String, dynamic> json) => WeatherPoint(
+        tsUtc: DateTime.parse(json['ts_utc'] as String),
+        tempC: json['temp_c'] as num?,
+        windMs: json['wind_ms'] as num?,
+        cond: json['cond'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'ts_utc': tsUtc.toUtc().toIso8601String(),
+        if (tempC != null) 'temp_c': tempC,
+        if (windMs != null) 'wind_ms': windMs,
+        if (cond != null) 'cond': cond,
+      };
 }

@@ -13,6 +13,7 @@ class PreferencesService {
   static const String _pendingFeedbackKey = 'pendingFeedback';
   static const String _pendingFeedbackThresholdIdKey =
       'pendingFeedbackThresholdId';
+  static const String _feedbackSubmittedPrefix = 'feedbackSubmitted_';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
 
@@ -159,5 +160,20 @@ class PreferencesService {
 
   Future<bool> hasPendingFeedback() async {
     return (await getPendingFeedbackSince()) != null;
+  }
+
+  Future<void> setFeedbackSubmitted(String rideId, bool submitted) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '$_feedbackSubmittedPrefix$rideId';
+    if (submitted) {
+      await prefs.setBool(key, true);
+    } else {
+      await prefs.remove(key);
+    }
+  }
+
+  Future<bool> getFeedbackSubmitted(String rideId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('$_feedbackSubmittedPrefix$rideId') ?? false;
   }
 }
