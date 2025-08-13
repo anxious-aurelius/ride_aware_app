@@ -56,3 +56,26 @@ async def schedule_pre_route_alert(threshold: Thresholds) -> None:
         await _check_and_notify(threshold)
 
     asyncio.create_task(worker())
+
+
+async def schedule_feedback_reminder(threshold: Thresholds) -> None:
+    """Schedule a feedback reminder one hour after commute end."""
+
+    tz = ZoneInfo(getattr(threshold, "timezone", "UTC"))
+    ride_date = date.fromisoformat(threshold.date)
+    end_dt = datetime.combine(
+        ride_date, parse_time(threshold.end_time), tzinfo=tz
+    )
+    reminder_dt = end_dt + timedelta(hours=1)
+
+    async def worker():
+        now = datetime.now(tz)
+        delay = (reminder_dt - now).total_seconds()
+        if delay > 0:
+            await asyncio.sleep(delay)
+        await _send_notification(
+            threshold.device_id,
+            "How was your ride? Please share quick feedback to improve your route tips.",
+        )
+
+    asyncio.create_task(worker())
