@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from models.thresholds import Thresholds
 from services.db import thresholds_collection
@@ -111,18 +112,30 @@ async def get_thresholds(device_id: str, date: str, start_time: str, end_time: s
 
 
 async def get_current_threshold(device_id: str) -> dict:
-    today = datetime.now().date().isoformat()
-    doc = await thresholds_collection.find_one({"device_id": device_id, "date": today})
+    today_server = datetime.now().date().isoformat()
+    doc = await thresholds_collection.find_one({"device_id": device_id, "date": today_server})
     if not doc:
         cursor = (
             thresholds_collection.find({"device_id": device_id})
             .sort([("date", -1), ("start_time", -1)])
             .limit(1)
         )
-        docs = await cursor.to_list(1)
-        doc = docs[0] if docs else None
-    if not doc:
-        raise HTTPException(status_code=404, detail="Thresholds not found")
+        latest_docs = await cursor.to_list(1)
+        latest = latest_docs[0] if latest_docs else None
+        if not latest:
+            raise HTTPException(status_code=404, detail="Thresholds not found")
+        tz_name = latest.get("timezone") or datetime.now().astimezone().tzinfo.key
+        tz = ZoneInfo(tz_name)
+        now = datetime.now()
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=tz)
+        today_local = now.astimezone(tz).date().isoformat()
+        if today_local != today_server:
+            doc = await thresholds_collection.find_one(
+                {"device_id": device_id, "date": today_local}
+            )
+        if not doc:
+            doc = latest
     threshold_id = str(doc.pop("_id"))
     payload = Thresholds(**doc).model_dump(mode="json")
     payload["threshold_id"] = threshold_id
