@@ -95,7 +95,7 @@ async def compute_wind_directions(req: RouteRequest) -> List[WindResult]:
             {"lat": p.lat, "lon": p.lon} for p in req.points
         ],
         "sampled_winds": [r.dict() for r in results],
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(),
     }
     try:
         await wind_collection.insert_one(record)

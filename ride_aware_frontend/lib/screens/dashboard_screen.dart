@@ -16,15 +16,15 @@ import 'package:flutter/material.dart';
 
 class RideSlot {
   final String rideId;
-  final DateTime startUtc;
-  final DateTime endUtc;
+  final DateTime start;
+  final DateTime end;
   final Map<String, dynamic>? threshold;
   final List<WeatherPoint> weather;
 
   RideSlot({
     required this.rideId,
-    required this.startUtc,
-    required this.endUtc,
+    required this.start,
+    required this.end,
     this.threshold,
     this.weather = const <WeatherPoint>[],
   });
@@ -64,12 +64,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       GlobalKey<UpcomingCommuteAlertState>();
 
   FeedbackWindow _windowFor(RideSlot current, RideSlot? next) {
-    // Show the feedback card shortly after a ride ends rather than waiting
-    // an hour. This ensures riders see the feedback prompt promptly.
-    final showAt = current.endUtc.toLocal().add(const Duration(minutes: 1));
+    // Feedback card appears one hour after ride end and hides one minute before next ride
+    final showAt = current.end.add(const Duration(hours: 1));
     final hideAt = next == null
         ? null
-        : next.startUtc.toLocal().subtract(const Duration(minutes: 1));
+        : next.start.subtract(const Duration(minutes: 1));
     return FeedbackWindow(showAt: showAt, hideAt: hideAt);
   }
 
@@ -282,14 +281,14 @@ class _DashboardScreenState extends State<DashboardScreen>
               onThresholdUpdated: _loadPrefs,
 
               onRideStarted: (
-                  String rideId, DateTime startUtc, Map<String, dynamic> threshold) async {
+                String rideId, DateTime start, Map<String, dynamic> threshold) async {
                 // No-op for now; could persist active ride
               },
 
               onRideEnded: (
                   String rideId,
-                  DateTime startUtc,
-                  DateTime endUtc,
+                  DateTime start,
+                  DateTime end,
                   String status,
                   Map<String, dynamic> summary,
                   Map<String, dynamic> threshold,
@@ -298,8 +297,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                     weatherHistory.map((e) => WeatherPoint.fromJson(e)).toList();
                 final entry = RideHistoryEntry(
                   rideId: rideId,
-                  startUtc: startUtc,
-                  endUtc: endUtc,
+                  start: start,
+                  end: end,
                   status: status,
                   summary: summary,
                   threshold: threshold,
@@ -313,8 +312,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 setState(() {
                   _pendingRide = RideSlot(
                     rideId: rideId,
-                    startUtc: startUtc,
-                    endUtc: endUtc,
+                    start: start,
+                    end: end,
                     threshold: threshold,
                     weather: weatherPoints,
                   );

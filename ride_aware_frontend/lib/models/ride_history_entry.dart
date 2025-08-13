@@ -1,7 +1,7 @@
 class RideHistoryEntry {
   final String rideId;
-  final DateTime startUtc;
-  final DateTime endUtc;
+  final DateTime start;
+  final DateTime end;
   final String status;
   final Map<String, dynamic> summary;
   final Map<String, dynamic>? threshold;
@@ -10,8 +10,8 @@ class RideHistoryEntry {
 
   RideHistoryEntry({
     required this.rideId,
-    required this.startUtc,
-    required this.endUtc,
+    required this.start,
+    required this.end,
     required this.status,
     required this.summary,
     this.threshold,
@@ -19,13 +19,18 @@ class RideHistoryEntry {
     required this.weather,
   });
 
-  DateTime get localDate => startUtc.toLocal();
+  DateTime get localDate => start;
 
   factory RideHistoryEntry.fromJson(Map<String, dynamic> json) {
+    final date = json['date'] as String;
+    final startStr = json['start_time'] as String;
+    final endStr = json['end_time'] as String;
+    final start = DateTime.parse('${date}T$startStr');
+    final end = DateTime.parse('${date}T$endStr');
     return RideHistoryEntry(
       rideId: json['ride_id'] as String,
-      startUtc: DateTime.parse(json['start_utc'] as String),
-      endUtc: DateTime.parse(json['end_utc'] as String),
+      start: start,
+      end: end,
       status: json['status'] as String,
       summary: Map<String, dynamic>.from(json['summary'] as Map),
       threshold: json['threshold'] == null
@@ -40,8 +45,9 @@ class RideHistoryEntry {
 
   Map<String, dynamic> toJson() => {
         'ride_id': rideId,
-        'start_utc': startUtc.toUtc().toIso8601String(),
-        'end_utc': endUtc.toUtc().toIso8601String(),
+        'date': start.toIso8601String().split('T').first,
+        'start_time': '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}',
+        'end_time': '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}',
         'status': status,
         'summary': summary,
         if (threshold != null) 'threshold': threshold,
@@ -52,21 +58,21 @@ class RideHistoryEntry {
 }
 
 class WeatherPoint {
-  final DateTime tsUtc;
+  final DateTime timestamp;
   final num? tempC;
   final num? windMs;
   final String? cond;
-  WeatherPoint({required this.tsUtc, this.tempC, this.windMs, this.cond});
+  WeatherPoint({required this.timestamp, this.tempC, this.windMs, this.cond});
 
   factory WeatherPoint.fromJson(Map<String, dynamic> json) => WeatherPoint(
-        tsUtc: DateTime.parse(json['ts_utc'] as String),
+        timestamp: DateTime.parse(json['timestamp'] as String),
         tempC: json['temp_c'] as num?,
         windMs: json['wind_ms'] as num?,
         cond: json['cond'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
-        'ts_utc': tsUtc.toUtc().toIso8601String(),
+        'timestamp': timestamp.toIso8601String(),
         if (tempC != null) 'temp_c': tempC,
         if (windMs != null) 'wind_ms': windMs,
         if (cond != null) 'cond': cond,

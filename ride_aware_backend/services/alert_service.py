@@ -43,7 +43,8 @@ async def _check_and_notify(threshold: Thresholds) -> None:
 async def schedule_pre_route_alert(threshold: Thresholds) -> None:
     """Schedule an alert three hours before commute start respecting timezone."""
 
-    tz = ZoneInfo(getattr(threshold, "timezone", "UTC"))
+    tz_name = getattr(threshold, "timezone", None) or datetime.now().astimezone().tzinfo.key
+    tz = ZoneInfo(tz_name)
     ride_date = date.fromisoformat(threshold.date)
     start_dt = datetime.combine(ride_date, parse_time(threshold.start_time), tzinfo=tz)
     alert_dt = start_dt - timedelta(hours=3)
@@ -61,7 +62,8 @@ async def schedule_pre_route_alert(threshold: Thresholds) -> None:
 async def schedule_feedback_reminder(threshold: Thresholds) -> None:
     """Schedule a feedback reminder one hour after commute end."""
 
-    tz = ZoneInfo(getattr(threshold, "timezone", "UTC"))
+    tz_name = getattr(threshold, "timezone", None) or datetime.now().astimezone().tzinfo.key
+    tz = ZoneInfo(tz_name)
     ride_date = date.fromisoformat(threshold.date)
     end_dt = datetime.combine(
         ride_date, parse_time(threshold.end_time), tzinfo=tz

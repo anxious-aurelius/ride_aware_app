@@ -395,10 +395,10 @@ class OfficeLocation {
 }
 
 class CommuteWindows {
-  /// Stored in UTC format (HH:mm)
+  /// Stored in local time (HH:mm)
   final String start;
 
-  /// Stored in UTC format (HH:mm)
+  /// Stored in local time (HH:mm)
   final String end;
 
   const CommuteWindows._({required this.start, required this.end});
@@ -411,7 +411,7 @@ class CommuteWindows {
   }
 
   factory CommuteWindows.defaultValues() {
-    // Default times in UTC (assuming user is in UTC+0 initially)
+    // Default times in local time
     return CommuteWindows(start: '07:30', end: '17:30');
   }
 
@@ -450,66 +450,29 @@ class CommuteWindows {
     return timeRegex.hasMatch(time);
   }
 
-  /// Convert UTC time string to local [TimeOfDay]
-  TimeOfDay utcToLocalTimeOfDay(String utcTimeString) {
+  /// Convert [TimeOfDay] to storage string
+  static String localTimeOfDayToString(TimeOfDay localTime) {
+    return '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  TimeOfDay _stringToTimeOfDay(String time) {
     try {
-      final parts = utcTimeString.split(':');
+      final parts = time.split(':');
       if (parts.length == 2) {
-        final utcHour = int.parse(parts[0]);
-        final utcMinute = int.parse(parts[1]);
-
-        // Create a DateTime in UTC for today with the specified time
-        final now = DateTime.now();
-        final utcDateTime = DateTime.utc(
-          now.year,
-          now.month,
-          now.day,
-          utcHour,
-          utcMinute,
-        );
-
-        // Convert to local time
-        final localDateTime = utcDateTime.toLocal();
-
         return TimeOfDay(
-          hour: localDateTime.hour,
-          minute: localDateTime.minute,
+          hour: int.parse(parts[0]),
+          minute: int.parse(parts[1]),
         );
       }
-    } catch (e) {
-      // If parsing fails, return default
-    }
+    } catch (_) {}
     return const TimeOfDay(hour: 7, minute: 30);
   }
 
-  /// Convert local [TimeOfDay] to UTC time string
-  static String localTimeOfDayToUtc(TimeOfDay localTime) {
-    try {
-      // Create a DateTime in local time for today with the specified time
-      final now = DateTime.now();
-      final localDateTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        localTime.hour,
-        localTime.minute,
-      );
-
-      // Convert to UTC
-      final utcDateTime = localDateTime.toUtc();
-
-      return '${utcDateTime.hour.toString().padLeft(2, '0')}:${utcDateTime.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      // If conversion fails, return the original time as string
-      return '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
-    }
-  }
-
   /// Get route start time in the local timezone
-  TimeOfDay get startLocal => utcToLocalTimeOfDay(start);
+  TimeOfDay get startLocal => _stringToTimeOfDay(start);
 
   /// Get route end time in the local timezone
-  TimeOfDay get endLocal => utcToLocalTimeOfDay(end);
+  TimeOfDay get endLocal => _stringToTimeOfDay(end);
 
   @override
   bool operator ==(Object other) {
@@ -526,6 +489,6 @@ class CommuteWindows {
 
   @override
   String toString() {
-    return 'CommuteWindows(start: $start UTC, end: $end UTC)';
+    return 'CommuteWindows(start: $start, end: $end)';
   }
 }

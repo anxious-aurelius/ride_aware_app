@@ -107,7 +107,7 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
     final prefs = await _prefsService.loadPreferences();
     final updated = prefs.copyWith(
       commuteWindows: prefs.commuteWindows.copyWith(
-        start: CommuteWindows.localTimeOfDayToUtc(time),
+        start: CommuteWindows.localTimeOfDayToString(time),
       ),
     );
     await _prefsService.savePreferences(updated);

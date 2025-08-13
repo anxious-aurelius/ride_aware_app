@@ -10,7 +10,7 @@ async def save_hourly_forecasts(lat: float, lon: float, forecasts: List[Dict]) -
     doc = {
         "lat": lat,
         "lon": lon,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(),
         "forecasts": forecasts,
     }
     await forecasts_collection.insert_one(doc)

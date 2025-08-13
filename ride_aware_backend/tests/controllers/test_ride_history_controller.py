@@ -45,5 +45,5 @@ def test_create_history_entry_sets_defaults_on_insert(monkeypatch):
     sched.assert_awaited_once()
     args, kwargs = sched.call_args
     assert args == ("dev1", "th1", "2024-01-01", "08:00", "09:00")
-    assert kwargs["timezone_str"] == "UTC"
+    assert kwargs["timezone_str"] is None
     assert kwargs["interval_minutes"] == 10

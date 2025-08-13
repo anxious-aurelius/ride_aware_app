@@ -36,12 +36,12 @@ class _StatusInfo {
 class UpcomingCommuteAlert extends StatefulWidget {
   final String feedbackSummary;
   final Future<void> Function()? onThresholdUpdated;
-  final Future<void> Function(String rideId, DateTime startUtc,
+  final Future<void> Function(String rideId, DateTime start,
       Map<String, dynamic> threshold)? onRideStarted;
   final Future<void> Function(
       String rideId,
-      DateTime startUtc,
-      DateTime endUtc,
+      DateTime start,
+      DateTime end,
       String status,
       Map<String, dynamic> summary,
       Map<String, dynamic> threshold,
@@ -923,13 +923,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       );
 
       final prefs = await _preferencesService.loadPreferences();
-      final startUtc = CommuteWindows.localTimeOfDayToUtc(
+      final startStr = CommuteWindows.localTimeOfDayToString(
           _routeStartTime ?? prefs.commuteWindows.startLocal);
-      final endUtc = CommuteWindows.localTimeOfDayToUtc(
+      final endStr = CommuteWindows.localTimeOfDayToString(
           _routeEndTime ?? prefs.commuteWindows.endLocal);
       final updatedPrefs = prefs.copyWith(
         weatherLimits: newLimits,
-        commuteWindows: CommuteWindows(start: startUtc, end: endUtc),
+        commuteWindows: CommuteWindows(start: startStr, end: endStr),
       );
 
       final feedbackGiven =

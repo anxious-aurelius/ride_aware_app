@@ -50,7 +50,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   final _officeLatController = TextEditingController();
   final _officeLonController = TextEditingController();
 
-  // Route time variables (displayed in local time, stored as UTC)
+// Route time variables (displayed and stored in local time)
   TimeOfDay _routeStartTime = const TimeOfDay(hour: 7, minute: 30);
   TimeOfDay _routeEndTime = const TimeOfDay(hour: 17, minute: 30);
 
@@ -132,21 +132,16 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           .toStringAsFixed(6);
     }
 
-    // Populate route times - convert from UTC to local time for display
+    // Populate route times (stored and displayed in local time)
     _routeStartTime = preferences.commuteWindows.startLocal;
     _routeEndTime = preferences.commuteWindows.endLocal;
 
     if (kDebugMode) {
-      print('🕐 Time Conversion Debug:');
-      print('   Stored Route Start UTC: ${preferences.commuteWindows.start}');
-      print(
-        '   Displayed Start Local: ${_formatTimeOfDay(_routeStartTime)}',
-      );
-      print('   Stored Route End UTC: ${preferences.commuteWindows.end}');
-      print(
-        '   Displayed End Local: ${_formatTimeOfDay(_routeEndTime)}',
-      );
-      print('   Current Timezone Offset: ${DateTime.now().timeZoneOffset}');
+      print('🕐 Time Debug:');
+      print('   Stored Route Start: ${preferences.commuteWindows.start}');
+      print('   Displayed Start Local: ${_formatTimeOfDay(_routeStartTime)}');
+      print('   Stored Route End: ${preferences.commuteWindows.end}');
+      print('   Displayed End Local: ${_formatTimeOfDay(_routeEndTime)}');
     }
   }
 
@@ -155,17 +150,13 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   }
 
   UserPreferences _createPreferencesFromForm() {
-    // Convert local times to UTC for storage
-    final startUtc = CommuteWindows.localTimeOfDayToUtc(_routeStartTime);
-    final endUtc = CommuteWindows.localTimeOfDayToUtc(_routeEndTime);
+    final startStr = CommuteWindows.localTimeOfDayToString(_routeStartTime);
+    final endStr = CommuteWindows.localTimeOfDayToString(_routeEndTime);
 
     if (kDebugMode) {
-      print('🕐 Time Conversion for Storage:');
-      print('   Local Start: ${_formatTimeOfDay(_routeStartTime)}');
-      print('   UTC Start: $startUtc');
-      print('   Local End: ${_formatTimeOfDay(_routeEndTime)}');
-      print('   UTC End: $endUtc');
-      print('   Current Timezone Offset: ${DateTime.now().timeZoneOffset}');
+      print('🕐 Time for Storage:');
+      print('   Start: $startStr');
+      print('   End: $endStr');
     }
 
     return UserPreferences(
@@ -187,7 +178,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         latitude: double.tryParse(_officeLatController.text) ?? 0.0,
         longitude: double.tryParse(_officeLonController.text) ?? 0.0,
       ),
-      commuteWindows: CommuteWindows(start: startUtc, end: endUtc),
+      commuteWindows: CommuteWindows(start: startStr, end: endStr),
     );
   }
 
@@ -203,10 +194,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       });
 
       if (kDebugMode) {
-        final utcTime = CommuteWindows.localTimeOfDayToUtc(picked);
-        print('🕐 Route Start Time Selected:');
-        print('   Local Time: ${_formatTimeOfDay(picked)}');
-        print('   Will be stored as UTC: $utcTime');
+        print('🕐 Route Start Time Selected: ${_formatTimeOfDay(picked)}');
       }
     }
   }
@@ -223,10 +211,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       });
 
       if (kDebugMode) {
-        final utcTime = CommuteWindows.localTimeOfDayToUtc(picked);
-        print('🕐 Route End Time Selected:');
-        print('   Local Time: ${_formatTimeOfDay(picked)}');
-        print('   Will be stored as UTC: $utcTime');
+        print('🕐 Route End Time Selected: ${_formatTimeOfDay(picked)}');
       }
     }
   }
@@ -500,7 +485,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         );
         print('   Total route points: ${routeModel.routePoints.length}');
         print(
-          '   Commute Windows (UTC): Start ${preferences.commuteWindows.start}, End ${preferences.commuteWindows.end}',
+          '   Commute Windows: Start ${preferences.commuteWindows.start}, End ${preferences.commuteWindows.end}',
         );
         print(
           '   Commute Windows (Local): Start ${_formatTimeOfDay(_routeStartTime)}, End ${_formatTimeOfDay(_routeEndTime)}',
@@ -802,7 +787,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Times shown in your local timezone ($timeZoneName, UTC$offsetString)',
+              'Times shown in your local timezone ($timeZoneName, offset $offsetString)',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontStyle: FontStyle.italic,
