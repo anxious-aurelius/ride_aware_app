@@ -43,6 +43,8 @@ def test_upsert_threshold_insert(monkeypatch):
     create_hist = AsyncMock()
     monkeypatch.setattr(threshold_controller, "create_feedback_entry", create_fb)
     monkeypatch.setattr(threshold_controller, "create_history_entry", create_hist)
+    alert = AsyncMock()
+    monkeypatch.setattr(threshold_controller, "schedule_pre_route_alert", alert)
 
     result = asyncio.run(threshold_controller.upsert_threshold(thresholds))
 
@@ -52,6 +54,7 @@ def test_upsert_threshold_insert(monkeypatch):
     create_hist.assert_awaited_once_with(
         "device123", "id", "2024-01-01", "08:00", "17:00"
     )
+    alert.assert_awaited_once()
     assert result["threshold_id"] == "id"
     assert result["status"] == "ok"
 
@@ -73,6 +76,8 @@ def test_upsert_threshold_update(monkeypatch):
     create_hist = AsyncMock()
     monkeypatch.setattr(threshold_controller, "create_feedback_entry", create_fb)
     monkeypatch.setattr(threshold_controller, "create_history_entry", create_hist)
+    alert = AsyncMock()
+    monkeypatch.setattr(threshold_controller, "schedule_pre_route_alert", alert)
 
     result = asyncio.run(threshold_controller.upsert_threshold(thresholds))
 
@@ -82,6 +87,7 @@ def test_upsert_threshold_update(monkeypatch):
     create_hist.assert_awaited_once_with(
         "device123", "existing", "2024-01-01", "08:00", "17:00"
     )
+    alert.assert_awaited_once()
     assert result["threshold_id"] == "existing"
     assert result["status"] == "ok"
 

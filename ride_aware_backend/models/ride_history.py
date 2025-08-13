@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from pydantic import BaseModel, Field
 
 class RideHistoryEntry(BaseModel):
@@ -11,3 +11,4 @@ class RideHistoryEntry(BaseModel):
     status: str
     summary: Dict[str, object]
     feedback: Optional[str] = None
+    weather_history: Optional[List[Dict[str, object]]] = None
