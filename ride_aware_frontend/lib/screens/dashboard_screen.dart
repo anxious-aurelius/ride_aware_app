@@ -14,6 +14,28 @@ import 'package:active_commuter_support/models/ride_history_entry.dart';
 import 'package:active_commuter_support/models/user_preferences.dart';
 import 'package:flutter/material.dart';
 
+class RideSlot {
+  final String rideId;
+  final DateTime startUtc;
+  final DateTime endUtc;
+  final Map<String, dynamic>? threshold;
+  final List<WeatherPoint> weather;
+
+  RideSlot({
+    required this.rideId,
+    required this.startUtc,
+    required this.endUtc,
+    this.threshold,
+    this.weather = const <WeatherPoint>[],
+  });
+}
+
+class FeedbackWindow {
+  final DateTime showAt; // end + 1h (local)
+  final DateTime? hideAt; // next start - 1m (local), or null if unknown
+  FeedbackWindow({required this.showAt, this.hideAt});
+}
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -39,28 +61,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
-
-  class RideSlot {
-    final String rideId;
-    final DateTime startUtc;
-    final DateTime endUtc;
-    final Map<String, dynamic>? threshold;
-    final List<Map<String, dynamic>> weather;
-
-    RideSlot({
-      required this.rideId,
-      required this.startUtc,
-      required this.endUtc,
-      this.threshold,
-      this.weather = const [],
-    });
-  }
-
-  class FeedbackWindow {
-    final DateTime showAt; // end + 1h (local)
-    final DateTime? hideAt; // next start - 1m (local), or null if unknown
-    FeedbackWindow({required this.showAt, this.hideAt});
-  }
 
   FeedbackWindow _windowFor(RideSlot current, RideSlot? next) {
     final showAt = current.endUtc.toLocal().add(const Duration(hours: 1));
@@ -282,6 +282,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   Map<String, dynamic> summary,
                   Map<String, dynamic> threshold,
                   List<Map<String, dynamic>> weatherHistory) async {
+                final weatherPoints =
+                    weatherHistory.map((e) => WeatherPoint.fromJson(e)).toList();
                 final entry = RideHistoryEntry(
                   rideId: rideId,
                   startUtc: startUtc,
@@ -290,7 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   summary: summary,
                   threshold: threshold,
                   feedback: null,
-                  weather: weatherHistory,
+                  weather: weatherPoints,
                 );
                 try {
                   await _apiService.saveRideHistoryEntry(entry);
@@ -302,7 +304,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     startUtc: startUtc,
                     endUtc: endUtc,
                     threshold: threshold,
-                    weather: weatherHistory,
+                    weather: weatherPoints,
                   );
                   _nextRide = null; // will be filled later if available
                   _endFeedbackGiven = false;
