@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+from datetime import datetime
 from unittest.mock import AsyncMock
 
 from controllers import threshold_controller
@@ -12,6 +13,8 @@ def _sample_thresholds() -> Thresholds:
         date="2024-01-01",
         start_time="08:00",
         end_time="17:00",
+        presence_radius_m=150,
+        speed_cutoff_kmh=7,
         weather_limits=WeatherLimits(
             max_wind_speed=10,
             max_rain_intensity=5,
@@ -52,7 +55,12 @@ def test_upsert_threshold_insert(monkeypatch):
     collection.insert_one.assert_awaited_once()
     create_fb.assert_awaited_once_with("device123", "id")
     create_hist.assert_awaited_once_with(
-        "device123", "id", "2024-01-01", "08:00", "17:00"
+        "device123",
+        "id",
+        "2024-01-01",
+        "08:00",
+        "17:00",
+        thresholds.model_dump(mode="json"),
     )
     alert.assert_awaited_once()
     assert result["threshold_id"] == "id"
@@ -85,7 +93,12 @@ def test_upsert_threshold_update(monkeypatch):
     collection.update_one.assert_awaited_once()
     create_fb.assert_awaited_once_with("device123", "existing")
     create_hist.assert_awaited_once_with(
-        "device123", "existing", "2024-01-01", "08:00", "17:00"
+        "device123",
+        "existing",
+        "2024-01-01",
+        "08:00",
+        "17:00",
+        thresholds.model_dump(mode="json"),
     )
     alert.assert_awaited_once()
     assert result["threshold_id"] == "existing"
@@ -129,3 +142,56 @@ def test_get_thresholds_not_found(monkeypatch):
                 "device123", "2024-01-01", "08:00", "17:00"
             )
         )
+
+
+def test_get_current_threshold_today(monkeypatch):
+    thresholds = _sample_thresholds().model_dump(mode="json")
+    thresholds["_id"] = "cur"
+
+    collection = type(
+        "C",
+        (),
+        {
+            "find_one": AsyncMock(return_value=dict(thresholds)),
+            "find": AsyncMock(),
+        },
+    )()
+    dummy_dt = type("D", (), {"utcnow": classmethod(lambda cls: datetime(2024, 1, 1))})
+    monkeypatch.setattr(threshold_controller, "datetime", dummy_dt)
+    monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
+
+    result = asyncio.run(threshold_controller.get_current_threshold("device123"))
+    assert result["threshold_id"] == "cur"
+    assert result["date"] == "2024-01-01"
+
+
+def test_get_current_threshold_latest(monkeypatch):
+    thresholds = _sample_thresholds().model_dump(mode="json")
+    thresholds["date"] = "2024-01-01"
+    thresholds["_id"] = "latest"
+
+    class Cursor:
+        def sort(self, *_):
+            return self
+
+        def limit(self, *_):
+            return self
+
+        async def to_list(self, *_):
+            return [thresholds]
+
+    collection = type(
+        "C",
+        (),
+        {
+            "find_one": AsyncMock(return_value=None),
+            "find": lambda self, query: Cursor(),
+        },
+    )()
+    dummy_dt = type("D", (), {"utcnow": classmethod(lambda cls: datetime(2024, 1, 2))})
+    monkeypatch.setattr(threshold_controller, "datetime", dummy_dt)
+    monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
+
+    result = asyncio.run(threshold_controller.get_current_threshold("device123"))
+    assert result["threshold_id"] == "latest"
+    assert result["date"] == "2024-01-01"

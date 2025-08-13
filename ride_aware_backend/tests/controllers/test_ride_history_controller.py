@@ -23,13 +23,22 @@ def test_create_history_entry_sets_defaults_on_insert(monkeypatch):
 
     asyncio.run(
         ride_history_controller.create_history_entry(
-            "dev1", "th1", "2024-01-01", "08:00", "09:00"
+            "dev1",
+            "th1",
+            "2024-01-01",
+            "08:00",
+            "09:00",
+            {"presence_radius_m": 100, "speed_cutoff_kmh": 5},
         )
     )
 
     assert dummy.args is not None
     filter_doc, update_doc, upsert = dummy.args
     assert filter_doc == {"threshold_id": "th1"}
-    assert update_doc["$setOnInsert"]["feedback"] is None
+    on_insert = update_doc["$setOnInsert"]
+    assert on_insert["feedback"] is None
+    assert on_insert["threshold"]["presence_radius_m"] == 100
     assert upsert is True
-    sched.assert_awaited_once_with("dev1", "th1", "08:00", "09:00")
+    sched.assert_awaited_once_with(
+        "dev1", "th1", "2024-01-01", "08:00", "09:00"
+    )

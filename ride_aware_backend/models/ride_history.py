@@ -10,5 +10,6 @@ class RideHistoryEntry(BaseModel):
     end_time: str
     status: str
     summary: Dict[str, object]
+    threshold: Dict[str, object]
     feedback: Optional[str] = None
     weather_history: Optional[List[Dict[str, object]]] = None

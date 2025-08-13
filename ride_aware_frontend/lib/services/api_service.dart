@@ -31,11 +31,16 @@ class ApiService {
         throw Exception('Invalid threshold values');
       }
 
+      final now = DateTime.now();
+      final date =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final requestBody = {
         'device_id': deviceId,
-        'date': DateTime.now().toUtc().toIso8601String().split('T').first,
+        'date': date,
         'start_time': preferences.commuteWindows.start,
         'end_time': preferences.commuteWindows.end,
+        'presence_radius_m': preferences.presenceRadiusM,
+        'speed_cutoff_kmh': preferences.speedCutoffKmh,
         'weather_limits': preferences.weatherLimits.toJson(),
         'office_location': preferences.officeLocation.toJson(),
       };
