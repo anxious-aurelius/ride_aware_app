@@ -141,7 +141,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       children: e.weather.map((w) {
         final t = w.tempC != null ? '${w.tempC}°C' : '?°C';
         final wind = w.windMs != null ? '${w.windMs} m/s' : '? m/s';
-        final hhmm = TimeOfDay.fromDateTime(w.tsUtc.toLocal());
+        final hhmm = TimeOfDay.fromDateTime(w.timestamp.toLocal());
         final stamp =
             '${hhmm.hour.toString().padLeft(2, "0")}:${hhmm.minute.toString().padLeft(2, "0")}';
         final cond = w.cond != null ? ' • ${w.cond}' : '';
