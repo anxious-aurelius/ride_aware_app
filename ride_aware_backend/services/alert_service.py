@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 
 from models.thresholds import Thresholds
-from services.db import fcm_tokens_collection
+from services.db import fcm_tokens_collection, thresholds_collection
 from services.weather_service import get_next_hours_forecast
 from services.threshold_eval import evaluate_forecast_point, summarize_breaches
 from utils.commute_window import parse_time
@@ -79,3 +79,15 @@ async def schedule_feedback_reminder(threshold: Thresholds) -> None:
         )
 
     asyncio.create_task(worker())
+
+
+async def schedule_existing_alerts() -> None:
+    """Reschedule alerts for all upcoming rides stored in the database."""
+
+    today = date.today().isoformat()
+    cursor = thresholds_collection.find({"date": {"$gte": today}})
+    async for doc in cursor:
+        doc.pop("_id", None)
+        threshold = Thresholds(**doc)
+        await schedule_pre_route_alert(threshold)
+        await schedule_feedback_reminder(threshold)
