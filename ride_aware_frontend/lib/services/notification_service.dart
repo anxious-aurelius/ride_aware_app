@@ -16,6 +16,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (action == 'feedback' && thresholdId != null) {
     await prefs.setPendingFeedbackThresholdId(thresholdId);
     await prefs.setPendingFeedback(DateTime.now());
+  } else if (action == 'pre_ride' && thresholdId != null) {
+    final body = message.notification?.body ?? '';
+    await prefs.setPreRideSummary(thresholdId, body);
   }
 }
 
@@ -148,6 +151,9 @@ class NotificationService {
       if (action == 'feedback' && thresholdId != null) {
         await _prefs.setPendingFeedbackThresholdId(thresholdId);
         await _prefs.setPendingFeedback(DateTime.now());
+      } else if (action == 'pre_ride' && thresholdId != null) {
+        final body = message.notification?.body ?? '';
+        await _prefs.setPreRideSummary(thresholdId, body);
       }
     });
 
@@ -157,6 +163,9 @@ class NotificationService {
       if (action == 'feedback' && thresholdId != null) {
         await _prefs.setPendingFeedbackThresholdId(thresholdId);
         await _prefs.setPendingFeedback(DateTime.now());
+      } else if (action == 'pre_ride' && thresholdId != null) {
+        final body = message.notification?.body ?? '';
+        await _prefs.setPreRideSummary(thresholdId, body);
       }
     });
   }

@@ -3,12 +3,14 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'app_initializer.dart';
 import 'theme/app_theme.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
   await Firebase.initializeApp();
+  await NotificationService().initialize();
 
   runApp(const ActiveCommuterApp());
 }
