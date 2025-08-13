@@ -12,7 +12,9 @@ class FeedbackWindow {
 }
 
 FeedbackWindow windowFor(RideSlot current, RideSlot? next) {
-  final showAt = current.end.add(const Duration(hours: 1));
+  // Show feedback immediately after the current ride ends
+  final showAt = current.end;
+  // Hide feedback one minute before the next ride starts (if any)
   final hideAt = (next == null
           ? DateTime.fromMillisecondsSinceEpoch(8640000000000000)
           : next.start)
