@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, Field, condecimal, StringConstraints, ConfigDict
 from typing import Annotated, Optional
 
@@ -25,6 +26,11 @@ class OfficeLocation(BaseModel):
     longitude: condecimal(gt=-180, le=180, decimal_places=6)
 
 
+def _local_timezone() -> str:
+    tzinfo = datetime.now().astimezone().tzinfo
+    return getattr(tzinfo, "key", tzinfo.tzname(None))
+
+
 class Thresholds(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -32,7 +38,7 @@ class Thresholds(BaseModel):
     date: DateStr
     start_time: TimeStr
     end_time: TimeStr
-    timezone: str = Field(default="UTC", min_length=1)
+    timezone: str = Field(default_factory=_local_timezone, min_length=1)
     weather_snapshot_interval_minutes: int = Field(default=10, ge=1)
     presence_radius_m: int = Field(default=100, ge=1)
     speed_cutoff_kmh: int = Field(default=5, ge=0)

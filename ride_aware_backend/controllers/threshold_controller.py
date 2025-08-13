@@ -111,7 +111,7 @@ async def get_thresholds(device_id: str, date: str, start_time: str, end_time: s
 
 
 async def get_current_threshold(device_id: str) -> dict:
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().date().isoformat()
     doc = await thresholds_collection.find_one({"device_id": device_id, "date": today})
     if not doc:
         cursor = (

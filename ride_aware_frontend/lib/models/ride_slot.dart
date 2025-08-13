@@ -1,8 +1,8 @@
 class RideSlot {
-  final DateTime startUtc;
-  final DateTime endUtc;
+  final DateTime start;
+  final DateTime end;
   final String rideId;
-  RideSlot({required this.startUtc, required this.endUtc, required this.rideId});
+  RideSlot({required this.start, required this.end, required this.rideId});
 }
 
 class FeedbackWindow {
@@ -12,11 +12,10 @@ class FeedbackWindow {
 }
 
 FeedbackWindow windowFor(RideSlot current, RideSlot? next) {
-  final showAt = current.endUtc.toLocal().add(const Duration(hours: 1));
+  final showAt = current.end.add(const Duration(hours: 1));
   final hideAt = (next == null
-          ? DateTime.fromMillisecondsSinceEpoch(8640000000000000, isUtc: true)
-          : next.startUtc)
-      .toLocal()
+          ? DateTime.fromMillisecondsSinceEpoch(8640000000000000)
+          : next.start)
       .subtract(const Duration(minutes: 1));
   return FeedbackWindow(showAt: showAt, hideAt: hideAt);
 }

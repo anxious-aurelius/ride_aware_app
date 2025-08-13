@@ -83,8 +83,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemCount: entries.length,
                     itemBuilder: (context, index) {
                       final e = entries[index];
-                      final start = e.startUtc.toLocal();
-                      final end = e.endUtc.toLocal();
+                      final start = e.start;
+                      final end = e.end;
                       return Card(
                         color: _statusColor(e.status),
                         margin: const EdgeInsets.symmetric(

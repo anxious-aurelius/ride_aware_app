@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timedelta
 from typing import List, Dict
 from zoneinfo import ZoneInfo
 
@@ -51,7 +51,7 @@ async def _record_snapshot(
 ) -> None:
     """Fetch and store a single weather snapshot."""
 
-    weather = get_hourly_forecast(lat, lon, now.astimezone(timezone.utc))
+    weather = get_hourly_forecast(lat, lon, now)
     snap = RouteWeatherSnapshot(
         device_id=device_id,
         threshold_id=threshold_id,
@@ -68,7 +68,7 @@ async def schedule_weather_collection(
     start_time: str,
     end_time: str,
     *,
-    timezone_str: str = "UTC",
+    timezone_str: str | None = None,
     interval_minutes: int = 10,
 ) -> None:
     """Collect weather snapshots only during the ride window."""
@@ -86,7 +86,7 @@ async def schedule_weather_collection(
     lat = float(points[0]["latitude"])
     lon = float(points[0]["longitude"])
 
-    tz = ZoneInfo(timezone_str)
+    tz = ZoneInfo(timezone_str) if timezone_str else ZoneInfo(datetime.now().astimezone().tzinfo.key)
     ride_date = date.fromisoformat(date_str)
     start_dt = datetime.combine(ride_date, parse_time(start_time), tzinfo=tz)
     end_dt = datetime.combine(ride_date, parse_time(end_time), tzinfo=tz)

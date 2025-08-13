@@ -43,7 +43,7 @@ async def create_feedback_entry(device_id: str, threshold_id: str) -> None:
     doc = {
         "device_id": device_id,
         "threshold_id": threshold_id,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now().isoformat(),
     }
     await feedback_collection.update_one(
         {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True

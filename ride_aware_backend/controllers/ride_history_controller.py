@@ -48,7 +48,7 @@ async def create_history_entry(
         date,
         start_time,
         end_time,
-        timezone_str=threshold_snapshot.get("timezone", "UTC"),
+        timezone_str=threshold_snapshot.get("timezone"),
         interval_minutes=threshold_snapshot.get(
             "weather_snapshot_interval_minutes", 10
         ),
@@ -95,7 +95,7 @@ async def save_ride_after_delay(
 
 
 async def fetch_rides(device_id: str, last_days: int = 30):
-    since = datetime.utcnow().date() - timedelta(days=last_days)
+    since = datetime.now().date() - timedelta(days=last_days)
     cursor = ride_history_collection.find(
         {"device_id": device_id, "date": {"$gte": since.isoformat()}}
     ).sort("date", -1)

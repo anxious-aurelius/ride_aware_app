@@ -166,7 +166,7 @@ def test_get_current_threshold_today(monkeypatch):
             "find": AsyncMock(),
         },
     )()
-    dummy_dt = type("D", (), {"utcnow": classmethod(lambda cls: datetime(2024, 1, 1))})
+    dummy_dt = type("D", (), {"now": classmethod(lambda cls: datetime(2024, 1, 1))})
     monkeypatch.setattr(threshold_controller, "datetime", dummy_dt)
     monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
 
@@ -198,7 +198,7 @@ def test_get_current_threshold_latest(monkeypatch):
             "find": lambda self, query: Cursor(),
         },
     )()
-    dummy_dt = type("D", (), {"utcnow": classmethod(lambda cls: datetime(2024, 1, 2))})
+    dummy_dt = type("D", (), {"now": classmethod(lambda cls: datetime(2024, 1, 2))})
     monkeypatch.setattr(threshold_controller, "datetime", dummy_dt)
     monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
 
