@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_preferences.dart';
 import '../models/route_model.dart'; // Import RouteModel
@@ -31,10 +32,21 @@ class ApiService {
         throw Exception('Invalid threshold values');
       }
 
-      final now = DateTime.now();
-      final date =
-          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final requestBody = {
+        final now = DateTime.now();
+        final rideStart = preferences.commuteWindows.startLocal;
+        final todayStart = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          rideStart.hour,
+          rideStart.minute,
+        );
+        final scheduled = now.isBefore(todayStart)
+            ? todayStart
+            : todayStart.add(const Duration(days: 1));
+        final date =
+            '${scheduled.year.toString().padLeft(4, '0')}-${scheduled.month.toString().padLeft(2, '0')}-${scheduled.day.toString().padLeft(2, '0')}';
+        final requestBody = {
         'device_id': deviceId,
         'date': date,
         'start_time': preferences.commuteWindows.start,

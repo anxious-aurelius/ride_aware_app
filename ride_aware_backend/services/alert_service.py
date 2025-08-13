@@ -41,7 +41,7 @@ async def schedule_pre_route_alert(threshold: Thresholds) -> None:
     alert_dt = start_dt - timedelta(hours=3)
 
     async def worker():
-        delay = (alert_dt - datetime.utcnow()).total_seconds()
+        delay = (alert_dt - datetime.now()).total_seconds()
         if delay > 0:
             await asyncio.sleep(delay)
         await _check_and_notify(threshold)

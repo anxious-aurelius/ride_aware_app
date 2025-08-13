@@ -83,15 +83,17 @@ class UpcomingCommuteViewModel extends ChangeNotifier {
 
   DateTime _nextCommuteTime(UserPreferences prefs) {
     final now = DateTime.now();
-    TimeOfDay rideTime = prefs.commuteWindows.startLocal;
-    DateTime scheduled = DateTime(
+    final rideTime = prefs.commuteWindows.startLocal;
+    final todayStart = DateTime(
       now.year,
       now.month,
-      now.day + 1,
+      now.day,
       rideTime.hour,
       rideTime.minute,
     );
-    return scheduled;
+    return now.isBefore(todayStart)
+        ? todayStart
+        : todayStart.add(const Duration(days: 1));
   }
 
   List<GeoPoint> _sampleRoute(RouteModel route, {int samples = 5}) {
