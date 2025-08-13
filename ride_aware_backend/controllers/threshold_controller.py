@@ -4,6 +4,7 @@ from models.thresholds import Thresholds
 from services.db import thresholds_collection
 from controllers.feedback_controller import create_feedback_entry
 from controllers.ride_history_controller import create_history_entry
+from services.alert_service import schedule_pre_route_alert
 
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
     await create_history_entry(
         device_id, threshold_id_str, date, start_time, end_time
     )
+    await schedule_pre_route_alert(threshold)
 
     logger.info(
         "Thresholds upserted for device %s on %s from %s to %s",

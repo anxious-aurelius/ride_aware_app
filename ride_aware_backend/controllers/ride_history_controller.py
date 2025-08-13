@@ -5,6 +5,10 @@ from fastapi import HTTPException
 from pymongo.errors import PyMongoError
 from models.ride_history import RideHistoryEntry
 from services.db import ride_history_collection
+from services.weather_history_service import (
+    schedule_weather_collection,
+    fetch_weather_history,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +30,7 @@ async def create_history_entry(
     await ride_history_collection.update_one(
         {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True
     )
+    await schedule_weather_collection(device_id, threshold_id, start_time, end_time)
 
 
 async def save_ride(entry: RideHistoryEntry) -> dict:
@@ -70,5 +75,7 @@ async def fetch_rides(device_id: str, last_days: int = 30):
     rides = []
     async for doc in cursor:
         doc.pop("_id", None)
+        history = await fetch_weather_history(doc["threshold_id"])
+        doc["weather_history"] = history
         rides.append(RideHistoryEntry(**doc).model_dump(mode="json"))
     return rides

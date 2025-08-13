@@ -9,6 +9,7 @@ class RideHistoryEntry {
   final String status;
   final Map<String, dynamic> summary;
   final String? feedback;
+  final List<Map<String, dynamic>> weatherHistory;
 
   RideHistoryEntry({
     required this.thresholdId,
@@ -18,6 +19,7 @@ class RideHistoryEntry {
     required this.status,
     required this.summary,
     this.feedback,
+    this.weatherHistory = const [],
   });
 
   factory RideHistoryEntry.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,9 @@ class RideHistoryEntry {
       status: json['status'] as String,
       summary: Map<String, dynamic>.from(json['summary'] as Map),
       feedback: json['feedback'] as String?,
+      weatherHistory: (json['weather_history'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
     );
   }
 
@@ -41,6 +46,7 @@ class RideHistoryEntry {
         'status': status,
         'summary': summary,
         if (feedback != null) 'feedback': feedback,
+        if (weatherHistory.isNotEmpty) 'weather_history': weatherHistory,
       };
 
   // No additional helpers needed; conversions handled by [CommuteWindows].

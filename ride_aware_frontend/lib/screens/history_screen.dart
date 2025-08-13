@@ -83,6 +83,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemBuilder: (context, index) {
                       final e = entries[index];
                       return Card(
+                        color: _statusColor(e.status),
                         margin: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 4),
                         child: ListTile(
@@ -94,11 +95,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          subtitle: Text(
-                            e.feedback ??
-                                'Next time you should give feedback to improve your experience.',
-                            style:
-                                Theme.of(context).textTheme.bodySmall,
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                e.feedback ??
+                                    'Next time you should give feedback to improve your experience.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              if (e.weatherHistory.isNotEmpty)
+                                Wrap(
+                                  spacing: 6,
+                                  children: e.weatherHistory.map((w) {
+                                    final temp = w['weather']['temp'];
+                                    final wind = w['weather']['wind_speed'];
+                                    return Chip(
+                                        label: Text('${temp ?? '?'}°C / ${wind ?? '?'}m/s'));
+                                  }).toList(),
+                                ),
+                            ],
                           ),
                         ),
                       );
@@ -120,5 +135,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     return Icon(Icons.info,
         color: Theme.of(context).colorScheme.onSurfaceVariant);
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'alert':
+        return Colors.red.shade100;
+      case 'warning':
+        return Colors.orange.shade100;
+      default:
+        return Colors.green.shade100;
+    }
   }
 }

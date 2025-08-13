@@ -14,6 +14,7 @@ fcm_tokens_collection = db["fcm_tokens"]
 feedback_collection = db["feedback"]
 ride_history_collection = db["ride_history"]
 forecasts_collection = db["forecasts"]
+weather_history_collection = db["weather_history"]
 
 
 async def init_db() -> None:
@@ -33,4 +34,10 @@ async def init_db() -> None:
     )
     await ride_history_collection.create_index(
         [("date", 1), ("threshold_id", 1)], unique=True
+    )
+    await weather_history_collection.create_index(
+        [
+            ("threshold_id", 1),
+            ("timestamp", 1),
+        ]
     )
