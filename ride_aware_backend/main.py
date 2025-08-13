@@ -11,6 +11,7 @@ from routes import (
     wind,
 )
 from services.db import init_db
+from services.alert_service import schedule_existing_alerts
 
 
 logging.basicConfig(
@@ -34,3 +35,4 @@ app.include_router(wind.router)
 @app.on_event("startup")
 async def startup_event():
     await init_db()
+    await schedule_existing_alerts()
