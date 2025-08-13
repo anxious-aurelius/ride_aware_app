@@ -58,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   RideSlot? _nextRide; // immediate next route after the pending one
   Timer? _tick;
   DateTime? _pendingFeedbackSince;
+  final Map<String, bool> _feedbackSubmitted = {};
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
       GlobalKey<UpcomingCommuteAlertState>();
@@ -84,6 +85,20 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
     _tick = Timer.periodic(const Duration(seconds: 20), (_) {
       setState(() {}); // just to re-evaluate shouldShowFeedback
+    });
+  }
+
+  Future<void> _loadSubmissionStatus(String rideId) async {
+    final submitted = await _prefsService.getFeedbackSubmitted(rideId);
+    if (!mounted) {
+      _feedbackSubmitted[rideId] = submitted;
+      return;
+    }
+    setState(() {
+      _feedbackSubmitted[rideId] = submitted;
+      if (_pendingRide?.rideId == rideId) {
+        _endFeedbackGiven = submitted;
+      }
     });
   }
 
@@ -118,6 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       _prefsService.setPendingFeedbackThresholdId(null);
       _pendingFeedbackSince = null;
       _feedbackNotificationShown = false;
+      _feedbackSubmitted.clear();
     }
   }
 
@@ -128,14 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  bool _hasSubmitted(String rideId) {
-    _prefsService.getFeedbackSubmitted(rideId).then((v) {
-      if (mounted && v != _endFeedbackGiven) {
-        setState(() => _endFeedbackGiven = v);
-      }
-    });
-    return _endFeedbackGiven;
-  }
+  bool _hasSubmitted(String rideId) => _feedbackSubmitted[rideId] ?? false;
 
   bool _shouldShowFeedbackCard() {
     final now = DateTime.now();
@@ -249,14 +258,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                           );
                           if (result != null) {
                             setState(() {
-                              _feedbackSummary = result['summary'] as String;
-                              _endFeedbackGiven = true;
-                              if (_pendingRide != null) {
+                            _feedbackSummary = result['summary'] as String;
+                            _endFeedbackGiven = true;
+                            if (_pendingRide != null) {
                                 _prefsService.setFeedbackSubmitted(
                                     _pendingRide!.rideId, true);
-                              }
-                              _pendingFeedbackSince = null;
-                            });
+                                _feedbackSubmitted[_pendingRide!.rideId] = true;
+                            }
+                            _pendingFeedbackSince = null;
+                          });
                             _prefsService.setEndFeedbackGiven(DateTime.now());
                             _prefsService.setPendingFeedback(null);
                             _prefsService.setPendingFeedbackThresholdId(null);
@@ -312,7 +322,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   _endFeedbackGiven = false;
                   _pendingFeedbackSince = null;
                   _feedbackNotificationShown = false;
+                  _feedbackSubmitted[rideId] = false;
                 });
+
+                _loadSubmissionStatus(rideId);
 
                 // Optionally fetch next scheduled route here
               },
