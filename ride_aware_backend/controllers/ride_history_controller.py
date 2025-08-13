@@ -34,7 +34,13 @@ async def create_history_entry(
         "feedback": None,
     }
     await ride_history_collection.update_one(
-        {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True
+        {
+            "threshold_id": threshold_id,
+            "date": date,
+            "start_time": start_time,
+        },
+        {"$setOnInsert": doc},
+        upsert=True,
     )
     await schedule_weather_collection(
         device_id,
@@ -53,7 +59,12 @@ async def save_ride(entry: RideHistoryEntry) -> dict:
     try:
         doc = entry.model_dump(mode="json")
         await ride_history_collection.update_one(
-            {"device_id": entry.device_id, "threshold_id": entry.threshold_id},
+            {
+                "device_id": entry.device_id,
+                "threshold_id": entry.threshold_id,
+                "date": entry.date.isoformat(),
+                "start_time": entry.start_time,
+            },
             {"$set": doc},
             upsert=True,
         )

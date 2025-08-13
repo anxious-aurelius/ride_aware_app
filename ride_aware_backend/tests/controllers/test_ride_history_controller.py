@@ -1,5 +1,4 @@
 import asyncio
-import asyncio
 from unittest.mock import AsyncMock
 
 from controllers import ride_history_controller
@@ -34,7 +33,11 @@ def test_create_history_entry_sets_defaults_on_insert(monkeypatch):
 
     assert dummy.args is not None
     filter_doc, update_doc, upsert = dummy.args
-    assert filter_doc == {"threshold_id": "th1"}
+    assert filter_doc == {
+        "threshold_id": "th1",
+        "date": "2024-01-01",
+        "start_time": "08:00",
+    }
     on_insert = update_doc["$setOnInsert"]
     assert on_insert["feedback"] is None
     assert on_insert["threshold"]["presence_radius_m"] == 100

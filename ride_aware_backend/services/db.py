@@ -33,7 +33,7 @@ async def init_db() -> None:
         partialFilterExpression={"threshold_id": {"$exists": True}}
     )
     await ride_history_collection.create_index(
-        [("date", 1), ("threshold_id", 1)], unique=True
+        [("date", 1), ("threshold_id", 1), ("start_time", 1)], unique=True
     )
     await weather_history_collection.create_index(
         [
