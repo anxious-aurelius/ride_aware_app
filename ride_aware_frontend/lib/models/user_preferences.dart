@@ -8,6 +8,7 @@ class UserPreferences {
   final CommuteWindows commuteWindows;
   final int presenceRadiusM;
   final int speedCutoffKmh;
+  final String timezone;
 
   const UserPreferences({
     required this.weatherLimits,
@@ -16,6 +17,7 @@ class UserPreferences {
     required this.commuteWindows,
     this.presenceRadiusM = 100,
     this.speedCutoffKmh = 5,
+    this.timezone = 'Europe/London',
   });
 
   // Default preferences for first-time users
@@ -27,6 +29,7 @@ class UserPreferences {
       commuteWindows: CommuteWindows.defaultValues(),
       presenceRadiusM: 100,
       speedCutoffKmh: 5,
+      timezone: 'Europe/London',
     );
   }
 
@@ -44,6 +47,7 @@ class UserPreferences {
       }),
       presenceRadiusM: json['presence_radius_m'] ?? 100,
       speedCutoffKmh: json['speed_cutoff_kmh'] ?? 5,
+      timezone: json['timezone'] ?? 'Europe/London',
     );
   }
 
@@ -57,6 +61,7 @@ class UserPreferences {
       'end_time': commuteWindows.end,
       'presence_radius_m': presenceRadiusM,
       'speed_cutoff_kmh': speedCutoffKmh,
+      'timezone': timezone,
     };
   }
 
@@ -68,6 +73,7 @@ class UserPreferences {
     CommuteWindows? commuteWindows,
     int? presenceRadiusM,
     int? speedCutoffKmh,
+    String? timezone,
   }) {
     return UserPreferences(
       weatherLimits: weatherLimits ?? this.weatherLimits,
@@ -76,6 +82,7 @@ class UserPreferences {
       commuteWindows: commuteWindows ?? this.commuteWindows,
       presenceRadiusM: presenceRadiusM ?? this.presenceRadiusM,
       speedCutoffKmh: speedCutoffKmh ?? this.speedCutoffKmh,
+      timezone: timezone ?? this.timezone,
     );
   }
 
@@ -98,7 +105,8 @@ class UserPreferences {
         other.officeLocation == officeLocation &&
         other.commuteWindows == commuteWindows &&
         other.presenceRadiusM == presenceRadiusM &&
-        other.speedCutoffKmh == speedCutoffKmh;
+        other.speedCutoffKmh == speedCutoffKmh &&
+        other.timezone == timezone;
   }
 
   @override
@@ -108,12 +116,14 @@ class UserPreferences {
         officeLocation.hashCode ^
         commuteWindows.hashCode ^
         presenceRadiusM.hashCode ^
-        speedCutoffKmh.hashCode;
+        speedCutoffKmh.hashCode ^
+        timezone.hashCode;
   }
 
   @override
   String toString() {
-    return 'UserPreferences(weatherLimits: $weatherLimits, environmentalRisk: $environmentalRisk, officeLocation: $officeLocation, commuteWindows: $commuteWindows, presenceRadiusM: $presenceRadiusM, speedCutoffKmh: $speedCutoffKmh)';
+    // ignore: lines_longer_than_80_chars
+    return 'UserPreferences(weatherLimits: $weatherLimits, environmentalRisk: $environmentalRisk, officeLocation: $officeLocation, commuteWindows: $commuteWindows, presenceRadiusM: $presenceRadiusM, speedCutoffKmh: $speedCutoffKmh, timezone: $timezone)';
   }
 }
 

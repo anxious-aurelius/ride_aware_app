@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import List, Dict
+from zoneinfo import ZoneInfo
 
 from models.weather_history import RouteWeatherSnapshot
 from services.db import weather_history_collection, routes_collection
@@ -45,12 +46,16 @@ def calculate_interval(start_time: str, end_time: str, distance_km: float) -> in
     return max(1, int(total / distance_km))
 
 
-async def _record_snapshot(device_id: str, threshold_id: str, lat: float, lon: float) -> None:
-    weather = get_hourly_forecast(lat, lon, datetime.utcnow())
+async def _record_snapshot(
+    device_id: str, threshold_id: str, lat: float, lon: float, now: datetime
+) -> None:
+    """Fetch and store a single weather snapshot."""
+
+    weather = get_hourly_forecast(lat, lon, now.astimezone(timezone.utc))
     snap = RouteWeatherSnapshot(
         device_id=device_id,
         threshold_id=threshold_id,
-        timestamp=datetime.utcnow(),
+        timestamp=now,
         weather=weather,
     )
     await weather_history_collection.insert_one(snap.model_dump(mode="json"))
@@ -62,8 +67,12 @@ async def schedule_weather_collection(
     date_str: str,
     start_time: str,
     end_time: str,
+    *,
+    timezone_str: str = "UTC",
+    interval_minutes: int = 10,
 ) -> None:
-    """Periodically record weather for the user's route."""
+    """Collect weather snapshots only during the ride window."""
+
     route_doc = await routes_collection.find_one({"device_id": device_id})
     if not route_doc:
         logger.info("No route for %s; skipping weather collection", device_id)
@@ -74,22 +83,38 @@ async def schedule_weather_collection(
         logger.info("Route %s has no points; skipping", device_id)
         return
 
-    dist = _route_distance(points)
-    interval = calculate_interval(start_time, end_time, dist)
     lat = float(points[0]["latitude"])
     lon = float(points[0]["longitude"])
 
-    threshold_date = date.fromisoformat(date_str)
-    start_dt = datetime.combine(threshold_date, parse_time(start_time))
-    end_dt = datetime.combine(threshold_date, parse_time(end_time))
+    tz = ZoneInfo(timezone_str)
+    ride_date = date.fromisoformat(date_str)
+    start_dt = datetime.combine(ride_date, parse_time(start_time), tzinfo=tz)
+    end_dt = datetime.combine(ride_date, parse_time(end_time), tzinfo=tz)
+
+    now = datetime.now(tz)
+    if now >= end_dt:
+        return
+
+    if now < start_dt:
+        await asyncio.sleep((start_dt - now).total_seconds())
+
+    now = datetime.now(tz)
+    if now >= end_dt:
+        return
+
+    interval = timedelta(minutes=interval_minutes)
 
     async def worker():
-        while datetime.utcnow() <= end_dt:
-            await _record_snapshot(device_id, threshold_id, lat, lon)
-            await asyncio.sleep(interval)
+        curr = now
+        while curr < end_dt:
+            await _record_snapshot(device_id, threshold_id, lat, lon, curr)
+            next_tick = curr + interval
+            if next_tick >= end_dt:
+                break
+            await asyncio.sleep((next_tick - curr).total_seconds())
+            curr = datetime.now(tz)
 
-    if datetime.utcnow() <= end_dt:
-        asyncio.create_task(worker())
+    asyncio.create_task(worker())
 
 
 async def fetch_weather_history(threshold_id: str) -> List[Dict[str, object]]:

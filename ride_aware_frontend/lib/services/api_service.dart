@@ -3,8 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_preferences.dart';
-import '../models/route_model.dart'; // Import RouteModel
+import '../models/route_model.dart';
 import '../models/ride_history_entry.dart';
+import '../helpers/schedule.dart';
 import 'device_id_service.dart';
 import 'preferences_service.dart';
 
@@ -32,25 +33,15 @@ class ApiService {
         throw Exception('Invalid threshold values');
       }
 
-        final now = DateTime.now();
-        final rideStart = preferences.commuteWindows.startLocal;
-        final todayStart = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          rideStart.hour,
-          rideStart.minute,
-        );
-        final scheduled = now.isBefore(todayStart)
-            ? todayStart
-            : todayStart.add(const Duration(days: 1));
-        final date =
-            '${scheduled.year.toString().padLeft(4, '0')}-${scheduled.month.toString().padLeft(2, '0')}-${scheduled.day.toString().padLeft(2, '0')}';
-        final requestBody = {
+      final now = DateTime.now();
+      final scheduledStart =
+          pickScheduledStart(now, preferences.commuteWindows.startLocal);
+      final requestBody = {
         'device_id': deviceId,
-        'date': date,
-        'start_time': preferences.commuteWindows.start,
-        'end_time': preferences.commuteWindows.end,
+        'date': yyyymmdd(scheduledStart),
+        'start_time': preferences.commuteWindows.startLocal.format24h(),
+        'end_time': preferences.commuteWindows.endLocal.format24h(),
+        'timezone': preferences.timezone,
         'presence_radius_m': preferences.presenceRadiusM,
         'speed_cutoff_kmh': preferences.speedCutoffKmh,
         'weather_limits': preferences.weatherLimits.toJson(),
