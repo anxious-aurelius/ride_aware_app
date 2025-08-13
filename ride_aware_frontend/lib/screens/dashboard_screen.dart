@@ -145,14 +145,24 @@ class _DashboardScreenState extends State<DashboardScreen>
     final thresholdId = await _prefsService.getCurrentThresholdId();
     if (thresholdId == null) return;
 
+    final start = DateTime(now.year, now.month, now.day,
+            _prefs!.commuteWindows.startLocal.hour,
+            _prefs!.commuteWindows.startLocal.minute)
+        .toUtc();
+    final end = DateTime(now.year, now.month, now.day,
+            _prefs!.commuteWindows.endLocal.hour,
+            _prefs!.commuteWindows.endLocal.minute)
+        .toUtc();
+
     final entry = RideHistoryEntry(
-      thresholdId: thresholdId,
-      date: DateTime.now().toUtc(),
-      startTime: _prefs!.commuteWindows.startLocal,
-      endTime: _prefs!.commuteWindows.endLocal,
+      rideId: thresholdId,
+      startUtc: start,
+      endUtc: end,
       status: result.status,
       summary: result.summary,
+      threshold: null,
       feedback: null,
+      weather: const [],
     );
     try {
       await _apiService.saveRideHistoryEntry(entry);

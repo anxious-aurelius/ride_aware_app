@@ -26,7 +26,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final entries = await _apiService.fetchRideHistory();
     final map = <DateTime, List<RideHistoryEntry>>{};
     for (final e in entries) {
-      final day = DateTime(e.date.year, e.date.month, e.date.day);
+      final local = e.localDate;
+      final day = DateTime(local.year, local.month, local.day);
       map.putIfAbsent(day, () => []).add(e);
     }
     setState(() {
@@ -82,6 +83,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemCount: entries.length,
                     itemBuilder: (context, index) {
                       final e = entries[index];
+                      final start = e.startUtc.toLocal();
+                      final end = e.endUtc.toLocal();
                       return Card(
                         color: _statusColor(e.status),
                         margin: const EdgeInsets.symmetric(
@@ -91,7 +94,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               horizontal: 16, vertical: 12),
                           leading: _feedbackIcon(e),
                           title: Text(
-                            '${_formatTime(e.startTime)}–${_formatTime(e.endTime)}',
+                            '${_formatTime(start)}–${_formatTime(end)}',
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold),
                           ),
@@ -100,19 +103,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             children: [
                               Text(
                                 e.feedback ??
-                                    'Next time you should give feedback to improve your experience.',
+                                    'No feedback provided. Add your feedback next time!',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
-                              if (e.weatherHistory.isNotEmpty)
-                                Wrap(
-                                  spacing: 6,
-                                  children: e.weatherHistory.map((w) {
-                                    final temp = w['weather']['temp'];
-                                    final wind = w['weather']['wind_speed'];
-                                    return Chip(
-                                        label: Text('${temp ?? '?'}°C / ${wind ?? '?'}m/s'));
-                                  }).toList(),
-                                ),
+                              _thresholdRow(e),
+                              const SizedBox(height: 4),
+                              _weatherChips(e),
                             ],
                           ),
                         ),
@@ -125,8 +121,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  String _formatTime(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  String _formatTime(DateTime dt) =>
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   Widget _feedbackIcon(RideHistoryEntry entry) {
     if (entry.feedback != null && entry.feedback!.isNotEmpty) {
@@ -135,6 +131,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     return Icon(Icons.info,
         color: Theme.of(context).colorScheme.onSurfaceVariant);
+  }
+
+  Widget _weatherChips(RideHistoryEntry e) {
+    if (e.weather.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: e.weather.map((w) {
+        final t = w.tempC != null ? '${w.tempC}°C' : '?°C';
+        final wind = w.windMs != null ? '${w.windMs} m/s' : '? m/s';
+        final hhmm = TimeOfDay.fromDateTime(w.tsUtc.toLocal());
+        final stamp =
+            '${hhmm.hour.toString().padLeft(2, "0")}:${hhmm.minute.toString().padLeft(2, "0")}';
+        final cond = w.cond != null ? ' • ${w.cond}' : '';
+        return Chip(label: Text('$stamp • $t • $wind$cond'));
+      }).toList(),
+    );
+  }
+
+  Widget _thresholdRow(RideHistoryEntry e) {
+    if (e.threshold == null || e.threshold!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final r = e.threshold!['presence_radius_m'];
+    final sp = e.threshold!['speed_cutoff_kmh'];
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0),
+      child: Text(
+        'Thresholds: radius ${r ?? '?'} m, speed ${sp ?? '?'} km/h',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
   }
 
   Color _statusColor(String status) {
