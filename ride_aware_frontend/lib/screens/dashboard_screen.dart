@@ -281,7 +281,15 @@ class _DashboardScreenState extends State<DashboardScreen>
 
               onRideStarted: (
                 String rideId, DateTime start, Map<String, dynamic> threshold) async {
-                // No-op for now; could persist active ride
+                // Hide any pending feedback when a new ride begins
+                await _prefsService.setPendingFeedback(null);
+                await _prefsService.setPendingFeedbackThresholdId(null);
+                if (!mounted) return;
+                setState(() {
+                  _showFeedback = false;
+                  _pendingRide = null;
+                  _pendingFeedbackThresholdId = null;
+                });
               },
 
               onRideEnded: (
@@ -318,11 +326,12 @@ class _DashboardScreenState extends State<DashboardScreen>
                   );
                   _nextRide = _determineNextRide(start);
                   _endFeedbackGiven = false;
+                  _showFeedback = true;
+                  _pendingFeedbackThresholdId = rideId;
                 });
 
                 await _prefsService.setPendingFeedback(DateTime.now());
                 await _prefsService.setPendingFeedbackThresholdId(rideId);
-                await _refreshFeedbackFlag();
               },
             ),
 
