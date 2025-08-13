@@ -91,20 +91,19 @@ async def schedule_weather_collection(
     start_dt = datetime.combine(ride_date, parse_time(start_time), tzinfo=tz)
     end_dt = datetime.combine(ride_date, parse_time(end_time), tzinfo=tz)
 
-    now = datetime.now(tz)
-    if now >= end_dt:
-        return
-
-    if now < start_dt:
-        await asyncio.sleep((start_dt - now).total_seconds())
-
-    now = datetime.now(tz)
-    if now >= end_dt:
-        return
-
     interval = timedelta(minutes=interval_minutes)
 
     async def worker():
+        now = datetime.now(tz)
+        if now >= end_dt:
+            return
+
+        if now < start_dt:
+            await asyncio.sleep((start_dt - now).total_seconds())
+            now = datetime.now(tz)
+            if now >= end_dt:
+                return
+
         curr = now
         while curr < end_dt:
             await _record_snapshot(device_id, threshold_id, lat, lon, curr)
