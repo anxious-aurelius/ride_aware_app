@@ -48,3 +48,15 @@ def test_set_threshold_validation_error():
     }
     response = client.post("/thresholds", json=payload)
     assert response.status_code == 422
+
+
+def test_get_current_threshold(monkeypatch):
+    async def fake_get_current(device_id: str):
+        return {"device_id": device_id}
+
+    monkeypatch.setattr(
+        threshold_route, "get_current_threshold", fake_get_current
+    )
+    response = client.get("/thresholds/device123/current")
+    assert response.status_code == 200
+    assert response.json()["device_id"] == "device123"

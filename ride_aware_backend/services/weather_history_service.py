@@ -57,7 +57,11 @@ async def _record_snapshot(device_id: str, threshold_id: str, lat: float, lon: f
 
 
 async def schedule_weather_collection(
-    device_id: str, threshold_id: str, start_time: str, end_time: str
+    device_id: str,
+    threshold_id: str,
+    date_str: str,
+    start_time: str,
+    end_time: str,
 ) -> None:
     """Periodically record weather for the user's route."""
     route_doc = await routes_collection.find_one({"device_id": device_id})
@@ -75,13 +79,17 @@ async def schedule_weather_collection(
     lat = float(points[0]["latitude"])
     lon = float(points[0]["longitude"])
 
+    threshold_date = date.fromisoformat(date_str)
+    start_dt = datetime.combine(threshold_date, parse_time(start_time))
+    end_dt = datetime.combine(threshold_date, parse_time(end_time))
+
     async def worker():
-        end_dt = datetime.combine(date.today(), parse_time(end_time))
         while datetime.utcnow() <= end_dt:
             await _record_snapshot(device_id, threshold_id, lat, lon)
             await asyncio.sleep(interval)
 
-    asyncio.create_task(worker())
+    if datetime.utcnow() <= end_dt:
+        asyncio.create_task(worker())
 
 
 async def fetch_weather_history(threshold_id: str) -> List[Dict[str, object]]:

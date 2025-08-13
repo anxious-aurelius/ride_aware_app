@@ -14,7 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 async def create_history_entry(
-    device_id: str, threshold_id: str, date: str, start_time: str, end_time: str
+    device_id: str,
+    threshold_id: str,
+    date: str,
+    start_time: str,
+    end_time: str,
+    threshold_snapshot: dict,
 ) -> None:
     """Create an empty history record linked to a threshold."""
     doc = {
@@ -25,12 +30,15 @@ async def create_history_entry(
         "end_time": end_time,
         "status": "pending",
         "summary": {},
+        "threshold": threshold_snapshot,
         "feedback": None,
     }
     await ride_history_collection.update_one(
         {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True
     )
-    await schedule_weather_collection(device_id, threshold_id, start_time, end_time)
+    await schedule_weather_collection(
+        device_id, threshold_id, date, start_time, end_time
+    )
 
 
 async def save_ride(entry: RideHistoryEntry) -> dict:

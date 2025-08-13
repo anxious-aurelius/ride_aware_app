@@ -6,12 +6,16 @@ class UserPreferences {
   final EnvironmentalRisk environmentalRisk;
   final OfficeLocation officeLocation;
   final CommuteWindows commuteWindows;
+  final int presenceRadiusM;
+  final int speedCutoffKmh;
 
   const UserPreferences({
     required this.weatherLimits,
     required this.environmentalRisk,
     required this.officeLocation,
     required this.commuteWindows,
+    this.presenceRadiusM = 100,
+    this.speedCutoffKmh = 5,
   });
 
   // Default preferences for first-time users
@@ -21,6 +25,8 @@ class UserPreferences {
       environmentalRisk: EnvironmentalRisk.defaultValues(),
       officeLocation: OfficeLocation.empty(),
       commuteWindows: CommuteWindows.defaultValues(),
+      presenceRadiusM: 100,
+      speedCutoffKmh: 5,
     );
   }
 
@@ -36,6 +42,8 @@ class UserPreferences {
         'start': json['start_time'] ?? '07:30',
         'end': json['end_time'] ?? '17:30',
       }),
+      presenceRadiusM: json['presence_radius_m'] ?? 100,
+      speedCutoffKmh: json['speed_cutoff_kmh'] ?? 5,
     );
   }
 
@@ -47,6 +55,8 @@ class UserPreferences {
       'office_location': officeLocation.toJson(),
       'start_time': commuteWindows.start,
       'end_time': commuteWindows.end,
+      'presence_radius_m': presenceRadiusM,
+      'speed_cutoff_kmh': speedCutoffKmh,
     };
   }
 
@@ -56,12 +66,16 @@ class UserPreferences {
     EnvironmentalRisk? environmentalRisk,
     OfficeLocation? officeLocation,
     CommuteWindows? commuteWindows,
+    int? presenceRadiusM,
+    int? speedCutoffKmh,
   }) {
     return UserPreferences(
       weatherLimits: weatherLimits ?? this.weatherLimits,
       environmentalRisk: environmentalRisk ?? this.environmentalRisk,
       officeLocation: officeLocation ?? this.officeLocation,
       commuteWindows: commuteWindows ?? this.commuteWindows,
+      presenceRadiusM: presenceRadiusM ?? this.presenceRadiusM,
+      speedCutoffKmh: speedCutoffKmh ?? this.speedCutoffKmh,
     );
   }
 
@@ -70,7 +84,9 @@ class UserPreferences {
     return weatherLimits.isValid &&
         environmentalRisk.isValid &&
         officeLocation.isValid &&
-        commuteWindows.isValid;
+        commuteWindows.isValid &&
+        presenceRadiusM > 0 &&
+        speedCutoffKmh >= 0;
   }
 
   @override
@@ -80,7 +96,9 @@ class UserPreferences {
         other.weatherLimits == weatherLimits &&
         other.environmentalRisk == environmentalRisk &&
         other.officeLocation == officeLocation &&
-        other.commuteWindows == commuteWindows;
+        other.commuteWindows == commuteWindows &&
+        other.presenceRadiusM == presenceRadiusM &&
+        other.speedCutoffKmh == speedCutoffKmh;
   }
 
   @override
@@ -88,12 +106,14 @@ class UserPreferences {
     return weatherLimits.hashCode ^
         environmentalRisk.hashCode ^
         officeLocation.hashCode ^
-        commuteWindows.hashCode;
+        commuteWindows.hashCode ^
+        presenceRadiusM.hashCode ^
+        speedCutoffKmh.hashCode;
   }
 
   @override
   String toString() {
-    return 'UserPreferences(weatherLimits: $weatherLimits, environmentalRisk: $environmentalRisk, officeLocation: $officeLocation, commuteWindows: $commuteWindows)';
+    return 'UserPreferences(weatherLimits: $weatherLimits, environmentalRisk: $environmentalRisk, officeLocation: $officeLocation, commuteWindows: $commuteWindows, presenceRadiusM: $presenceRadiusM, speedCutoffKmh: $speedCutoffKmh)';
   }
 }
 

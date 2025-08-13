@@ -32,5 +32,7 @@ class Thresholds(BaseModel):
     date: DateStr
     start_time: TimeStr
     end_time: TimeStr
+    presence_radius_m: int = Field(default=100, ge=1)
+    speed_cutoff_kmh: int = Field(default=5, ge=0)
     weather_limits: WeatherLimits
     office_location: OfficeLocation
