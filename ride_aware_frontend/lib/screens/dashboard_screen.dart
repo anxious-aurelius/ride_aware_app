@@ -104,6 +104,39 @@ class _DashboardScreenState extends State<DashboardScreen>
     return now.isAfter(hideAt);
   }
 
+  RideSlot? _determineNextRide(DateTime start) {
+    if (_prefs == null) return null;
+    final windows = _prefs!.commuteWindows;
+    final startLocal = windows.startLocal;
+    final endLocal = windows.endLocal;
+
+    final endToday = DateTime(
+        start.year, start.month, start.day, endLocal.hour, endLocal.minute);
+
+    if (start.isBefore(endToday)) {
+      // Morning ride – next is the evening commute
+      return RideSlot(
+        rideId: '',
+        start: endToday,
+        end: endToday,
+        threshold: null,
+        weather: const <WeatherPoint>[],
+      );
+    }
+
+    // Evening ride – next ride is tomorrow morning
+    final nextDay = start.add(const Duration(days: 1));
+    final nextMorning = DateTime(
+        nextDay.year, nextDay.month, nextDay.day, startLocal.hour, startLocal.minute);
+    return RideSlot(
+      rideId: '',
+      start: nextMorning,
+      end: nextMorning,
+      threshold: null,
+      weather: const <WeatherPoint>[],
+    );
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -283,10 +316,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                     threshold: threshold,
                     weather: weatherPoints,
                   );
-                  _nextRide = null; // will be filled later if available
+                  _nextRide = _determineNextRide(start);
                   _endFeedbackGiven = false;
                 });
-                // Optionally fetch next scheduled route here
+
+                await _prefsService.setPendingFeedback(DateTime.now());
+                await _prefsService.setPendingFeedbackThresholdId(rideId);
+                await _refreshFeedbackFlag();
               },
             ),
 
