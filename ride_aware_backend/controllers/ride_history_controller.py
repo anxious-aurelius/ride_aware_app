@@ -37,7 +37,15 @@ async def create_history_entry(
         {"threshold_id": threshold_id}, {"$setOnInsert": doc}, upsert=True
     )
     await schedule_weather_collection(
-        device_id, threshold_id, date, start_time, end_time
+        device_id,
+        threshold_id,
+        date,
+        start_time,
+        end_time,
+        timezone_str=threshold_snapshot.get("timezone", "UTC"),
+        interval_minutes=threshold_snapshot.get(
+            "weather_snapshot_interval_minutes", 10
+        ),
     )
 
 
