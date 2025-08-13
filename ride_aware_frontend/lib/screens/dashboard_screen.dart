@@ -63,7 +63,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       GlobalKey<UpcomingCommuteAlertState>();
 
   FeedbackWindow _windowFor(RideSlot current, RideSlot? next) {
-    final showAt = current.endUtc.toLocal().add(const Duration(hours: 1));
+    // Show the feedback card shortly after a ride ends rather than waiting
+    // an hour. This ensures riders see the feedback prompt promptly.
+    final showAt = current.endUtc.toLocal().add(const Duration(minutes: 1));
     final hideAt = next == null
         ? null
         : next.startUtc.toLocal().subtract(const Duration(minutes: 1));
