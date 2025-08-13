@@ -1,8 +1,23 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
+import 'preferences_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  final prefs = PreferencesService();
+  final action = message.data['action'];
+  final thresholdId = message.data['threshold_id'];
+
+  if (action == 'feedback' && thresholdId != null) {
+    await prefs.setPendingFeedbackThresholdId(thresholdId);
+    await prefs.setPendingFeedback(DateTime.now());
+  }
+}
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -13,6 +28,7 @@ class NotificationService {
   final ApiService _apiService = ApiService();
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+  final PreferencesService _prefs = PreferencesService();
 
   String? _fcmToken;
 
@@ -44,6 +60,10 @@ class NotificationService {
         const initSettings = InitializationSettings(
             android: androidSettings, iOS: iosSettings);
         await _localNotificationsPlugin.initialize(initSettings);
+
+        // Register background handler
+        FirebaseMessaging.onBackgroundMessage(
+            firebaseMessagingBackgroundHandler);
 
         // Get the FCM token
         await _getFCMToken();
@@ -103,45 +123,61 @@ class NotificationService {
     }
   }
 
-  /// Set up foreground message handling
+  /// Set up foreground and tapped message handling
   void _setupForegroundMessageHandling() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       if (kDebugMode) {
         print('📱 Foreground Message: ${message.notification?.title}');
         print('📱 Foreground Body: ${message.notification?.body}');
         print('📱 Data: ${message.data}');
       }
 
-      // Show in-app notification or handle as needed
-      _showInAppNotification(message);
-    });
+      final notif = message.notification;
+      final data = message.data;
+      final action = data['action'];
+      final thresholdId = data['threshold_id'];
 
-    // Handle notification taps when app is in background but not terminated
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      if (kDebugMode) {
-        print('📱 Notification tapped: ${message.notification?.title}');
+      if (notif != null) {
+        await _showLocalNotification(
+          notif.title ?? 'Ride Aware',
+          notif.body ?? '',
+          payload: action ?? '',
+        );
       }
-      // Handle navigation or actions when notification is tapped
-      _handleNotificationTap(message);
+
+      if (action == 'feedback' && thresholdId != null) {
+        await _prefs.setPendingFeedbackThresholdId(thresholdId);
+        await _prefs.setPendingFeedback(DateTime.now());
+      }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+      final action = message.data['action'];
+      final thresholdId = message.data['threshold_id'];
+      if (action == 'feedback' && thresholdId != null) {
+        await _prefs.setPendingFeedbackThresholdId(thresholdId);
+        await _prefs.setPendingFeedback(DateTime.now());
+      }
     });
   }
 
-  /// Show in-app notification (you can customize this)
-  void _showInAppNotification(RemoteMessage message) {
-    // This is a simple implementation - you might want to use a proper notification package
-    // or show a custom dialog/snackbar
-    if (kDebugMode) {
-      print('🔔 Showing in-app notification: ${message.notification?.title}');
-    }
-  }
-
-  /// Handle notification tap
-  void _handleNotificationTap(RemoteMessage message) {
-    // Handle what happens when user taps the notification
-    // For example, navigate to a specific screen based on message data
-    if (kDebugMode) {
-      print('👆 Handling notification tap: ${message.data}');
-    }
+  Future<void> _showLocalNotification(String title, String body,
+      {String? payload}) async {
+    const android = AndroidNotificationDetails(
+      'ride_aware_default',
+      'Ride Aware',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const ios = DarwinNotificationDetails();
+    const details = NotificationDetails(android: android, iOS: ios);
+    await _localNotificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      details,
+      payload: payload,
+    );
   }
 
   /// Get current FCM token
