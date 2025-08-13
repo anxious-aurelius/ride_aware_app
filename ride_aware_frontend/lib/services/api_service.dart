@@ -41,7 +41,7 @@ class ApiService {
         'date': yyyymmdd(scheduledStart),
         'start_time': preferences.commuteWindows.startLocal.format24h(),
         'end_time': preferences.commuteWindows.endLocal.format24h(),
-        'timezone': preferences.timezone,
+        'timezone': preferences.timezone ?? 'Europe/London',
         'presence_radius_m': preferences.presenceRadiusM,
         'speed_cutoff_kmh': preferences.speedCutoffKmh,
         'weather_limits': preferences.weatherLimits.toJson(),

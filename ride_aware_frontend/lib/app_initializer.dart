@@ -2,7 +2,6 @@ import 'package:active_commuter_support/screens/dashboard_screen.dart';
 import 'package:active_commuter_support/screens/participant_code_screen.dart';
 import 'package:active_commuter_support/screens/preferences_screen.dart';
 import 'package:active_commuter_support/services/preferences_service.dart';
-import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:active_commuter_support/services/device_id_service.dart';
 import 'package:active_commuter_support/services/consent_service.dart';
@@ -20,7 +19,6 @@ class AppInitializer extends StatefulWidget {
 class _AppInitializerState extends State<AppInitializer> {
   final _preferencesService = PreferencesService();
   final _deviceIdService = DeviceIdService();
-  final _notificationService = NotificationService();
   final _consentService = ConsentService();
   bool _isLoading = true;
   bool _hasParticipantId = false;
@@ -36,9 +34,6 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _checkAppState() async {
     try {
-      // Initialize notification service
-      await _notificationService.initialize();
-
       // 1. Check if participant ID hash exists
       final hasParticipantId = await _deviceIdService.hasParticipantIdHash();
 
