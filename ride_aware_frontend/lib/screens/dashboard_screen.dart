@@ -85,6 +85,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _refreshFeedbackFlag() async {
     final pendingId = await _prefsService.getPendingFeedbackThresholdId();
+    final hasPending = pendingId != null
+        ? true
+        : await _prefsService.hasPendingFeedback();
     final submitted = pendingId != null
         ? await _prefsService.getFeedbackSubmitted(pendingId)
         : false;
@@ -93,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     setState(() {
       _pendingFeedbackThresholdId = pendingId;
       _endFeedbackGiven = submitted;
-      _showFeedback = pendingId != null && !submitted && !hideForNextRide;
+      _showFeedback = hasPending && !submitted && !hideForNextRide;
     });
   }
 
