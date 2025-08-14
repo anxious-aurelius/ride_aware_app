@@ -210,6 +210,24 @@ class NotificationService {
     );
   }
 
+  /// Show a notification warning about upcoming ride conditions
+  Future<void> showPreRideAlert(String message) async {
+    const androidDetails = AndroidNotificationDetails(
+      'pre_ride_channel',
+      'Pre-Ride Alerts',
+      channelDescription: 'Notifications for upcoming ride weather alerts',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const notificationDetails = NotificationDetails(android: androidDetails);
+    await _localNotificationsPlugin.show(
+      1,
+      'Weather Alert: Prepare for your ride',
+      message,
+      notificationDetails,
+    );
+  }
+
   /// Check if notifications are enabled
   Future<bool> areNotificationsEnabled() async {
     NotificationSettings settings = await _firebaseMessaging

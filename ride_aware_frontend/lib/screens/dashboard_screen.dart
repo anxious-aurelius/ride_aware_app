@@ -446,6 +446,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                 await _prefsService.setPendingFeedback(DateTime.now());
                 await _prefsService.setPendingFeedbackThresholdId(rideId);
+                await _notificationService.showFeedbackNotification();
               },
             ),
 
