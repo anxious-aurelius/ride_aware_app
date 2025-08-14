@@ -164,6 +164,51 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
+  Future<void> _manualEndRide() async {
+    final thresholdId = await _prefsService.getCurrentThresholdId();
+    if (thresholdId == null) return;
+    await _prefsService.setPendingFeedback(DateTime.now());
+    await _prefsService.setPendingFeedbackThresholdId(thresholdId);
+    if (!mounted) return;
+    setState(() {
+      _showFeedback = true;
+      _endFeedbackGiven = false;
+      _pendingFeedbackThresholdId = thresholdId;
+    });
+  }
+
+  Future<void> _dismissFeedback() async {
+    final payload = {
+      'commute': 'end',
+      'temperature_ok': true,
+      'wind_speed_ok': true,
+      'headwind_ok': true,
+      'crosswind_ok': true,
+      'precipitation_ok': true,
+      'humidity_ok': true,
+      'summary':
+          'No issues reported. User closed the feedback without filling.',
+    };
+    try {
+      await _apiService.submitFeedback(payload);
+    } catch (_) {}
+    if (_pendingFeedbackThresholdId != null) {
+      await _prefsService.setFeedbackSubmitted(
+          _pendingFeedbackThresholdId!, true);
+    }
+    await _prefsService.setEndFeedbackGiven(DateTime.now());
+    await _prefsService.setPendingFeedback(null);
+    await _prefsService.setPendingFeedbackThresholdId(null);
+    if (!mounted) return;
+    setState(() {
+      _feedbackSummary =
+          'No issues reported. You had no problem with current threshold.';
+      _endFeedbackGiven = true;
+      _showFeedback = false;
+      _pendingFeedbackThresholdId = null;
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -181,6 +226,11 @@ class _DashboardScreenState extends State<DashboardScreen>
         title: const Text('Dashboard'),
         centerTitle: true,
         actions: [
+          IconButton(
+            onPressed: _manualEndRide,
+            icon: const Icon(Icons.stop),
+            tooltip: 'End Ride',
+          ),
           IconButton(
             onPressed: () async {
               await Navigator.push(
@@ -243,6 +293,18 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ? 'Feedback submitted for your last ride'
                         : 'Feedback available for your last ride',
                   ),
+                  subtitle: !_endFeedbackGiven
+                      ? const Text(
+                          'Tap to give feedback or close if your ride was fine.',
+                        )
+                      : null,
+                  trailing: !_endFeedbackGiven
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          tooltip: 'No issues',
+                          onPressed: _dismissFeedback,
+                        )
+                      : null,
                   onTap: _endFeedbackGiven
                       ? null
                       : () async {
