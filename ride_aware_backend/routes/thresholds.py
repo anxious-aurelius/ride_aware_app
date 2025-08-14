@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, Request
 from models.thresholds import Thresholds
-from controllers.threshold_controller import (
+from controllers.thresholds_controller import (
     upsert_threshold,
     get_thresholds,
     get_current_threshold,

@@ -3,7 +3,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock
 
-from controllers import threshold_controller
+from controllers import thresholds_controller
 from models.thresholds import Thresholds, WeatherLimits, OfficeLocation
 
 
