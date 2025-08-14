@@ -31,6 +31,8 @@ bool shouldShowFeedback({
   if (feedbackAlreadySubmitted) return false;
   final now = nowLocal ?? DateTime.now();
   final win = windowFor(current, next);
-  if (now.isAfter(win.hideAt)) return false;
+  // Hide the card once the window has closed (at hideAt or later)
+  if (!now.isBefore(win.hideAt)) return false;
+  // Show the card once the ride has finished
   return !now.isBefore(win.showAt);
 }
