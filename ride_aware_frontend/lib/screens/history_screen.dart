@@ -70,7 +70,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 shape: BoxShape.circle,
               ),
               markerDecoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary,
+                color: Theme.of(context).colorScheme.tertiary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -168,11 +168,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Color _statusColor(String status) {
     switch (status) {
       case 'alert':
-        return Colors.red.shade100;
+        return Colors.red.shade300;
       case 'warning':
-        return Colors.orange.shade100;
+        return Colors.orange.shade300;
       default:
-        return Colors.green.shade100;
+        return Colors.green.shade300;
     }
   }
 }
