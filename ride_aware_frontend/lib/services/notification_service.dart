@@ -6,6 +6,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
 import 'preferences_service.dart';
 
+// Separate plugin instance for background isolates
+final FlutterLocalNotificationsPlugin _backgroundNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -19,6 +23,27 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   } else if (action == 'pre_ride' && thresholdId != null) {
     final body = message.notification?.body ?? '';
     await prefs.setPreRideSummary(thresholdId, body);
+
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings();
+    const initSettings = InitializationSettings(
+        android: androidSettings, iOS: iosSettings);
+    await _backgroundNotificationsPlugin.initialize(initSettings);
+
+    const androidDetails = AndroidNotificationDetails(
+      'pre_ride_channel',
+      'Pre-Ride Alerts',
+      channelDescription: 'Notifications for upcoming ride weather alerts',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const notificationDetails = NotificationDetails(android: androidDetails);
+    await _backgroundNotificationsPlugin.show(
+      1,
+      'Weather Alert: Prepare for your ride',
+      body,
+      notificationDetails,
+    );
   }
 }
 
@@ -141,11 +166,15 @@ class NotificationService {
       final thresholdId = data['threshold_id'];
 
       if (notif != null) {
-        await _showLocalNotification(
-          notif.title ?? 'Ride Aware',
-          notif.body ?? '',
-          payload: action ?? '',
-        );
+        if (action == 'pre_ride') {
+          await showPreRideAlert(notif.body ?? '');
+        } else {
+          await _showLocalNotification(
+            notif.title ?? 'Ride Aware',
+            notif.body ?? '',
+            payload: action ?? '',
+          );
+        }
       }
 
       if (action == 'feedback' && thresholdId != null) {
