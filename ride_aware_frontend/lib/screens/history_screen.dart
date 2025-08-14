@@ -47,8 +47,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: Column(
         children: [
           TableCalendar<RideHistoryEntry>(
-            firstDay: DateTime.now().subtract(const Duration(days: 30)),
-            lastDay: DateTime.now(),
+            firstDay: DateTime.now().subtract(const Duration(days: 365)),
+            lastDay: DateTime.now().add(const Duration(days: 365)),
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             eventLoader: _getEntriesForDay,
