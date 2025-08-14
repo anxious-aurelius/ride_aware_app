@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import HTTPException
 from models.thresholds import Thresholds
 from services.db import thresholds_collection
@@ -124,8 +124,12 @@ async def get_current_threshold(device_id: str) -> dict:
         latest = latest_docs[0] if latest_docs else None
         if not latest:
             raise HTTPException(status_code=404, detail="Thresholds not found")
-        tz_name = latest.get("timezone") or datetime.now().astimezone().tzinfo.key
-        tz = ZoneInfo(tz_name)
+        local_tz = datetime.now().astimezone().tzinfo
+        tz_name = latest.get("timezone") or getattr(local_tz, "key", local_tz.tzname(None))
+        try:
+            tz = ZoneInfo(tz_name)
+        except ZoneInfoNotFoundError:
+            tz = local_tz
         now = datetime.now()
         if now.tzinfo is None:
             now = now.replace(tzinfo=tz)
