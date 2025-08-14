@@ -7,6 +7,7 @@ import '../utils/i18n.dart';
 import '../models/user_preferences.dart';
 import '../services/preferences_service.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../screens/wind_map_screen.dart';
 
 // Helper classes defined outside the widget
@@ -77,6 +78,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   final GlobalKey<FormState> _thresholdFormKey = GlobalKey<FormState>();
   bool _showThresholdForm = false;
   bool _isSaving = false;
+  bool _preRideNotificationShown = false;
 
   UserPreferences? _prefs;
 
@@ -96,7 +98,17 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     _loadPrefs();
   }
 
-  void _onUpdate() => setState(() {});
+  void _onUpdate() {
+    setState(() {});
+    if (!_vm.isLoading &&
+        _vm.result != null &&
+        _vm.result!.issues.isNotEmpty &&
+        !_preRideNotificationShown) {
+      final message = _vm.result!.issues.join(' • ');
+      NotificationService().showPreRideAlert(message);
+      _preRideNotificationShown = true;
+    }
+  }
 
   Future<void> _loadPrefs() async {
     final prefs = await _preferencesService.loadPreferences();
@@ -111,6 +123,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   void refreshForecast() {
+    _preRideNotificationShown = false;
     _vm.load();
   }
 
