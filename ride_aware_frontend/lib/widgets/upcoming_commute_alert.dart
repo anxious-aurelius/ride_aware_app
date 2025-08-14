@@ -102,11 +102,17 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     setState(() {});
     if (!_vm.isLoading &&
         _vm.result != null &&
-        _vm.result!.issues.isNotEmpty &&
         !_preRideNotificationShown) {
-      final message = _vm.result!.issues.join(' • ');
-      NotificationService().showPreRideAlert(message);
-      _preRideNotificationShown = true;
+      final r = _vm.result!;
+      final hasProblems =
+          r.status != 'ok' || r.issues.isNotEmpty || r.borderline.isNotEmpty;
+      if (hasProblems) {
+        final parts = [...r.issues, ...r.borderline];
+        final message =
+            parts.isNotEmpty ? parts.join(' • ') : 'Check ride conditions';
+        NotificationService().showPreRideAlert(message);
+        _preRideNotificationShown = true;
+      }
     }
   }
 
