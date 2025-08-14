@@ -66,7 +66,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _alertKey.currentState?.refreshForecast();
     });
-    _tick = Timer.periodic(const Duration(seconds: 20), (_) {
+    _tick = Timer.periodic(const Duration(seconds: 20), (_) async {
+      await _maybeAutoEndRide();
+      if (!mounted) return;
       setState(() {}); // existing periodic refresh
     });
     _refreshFeedbackFlag();
@@ -102,6 +104,40 @@ class _DashboardScreenState extends State<DashboardScreen>
     final now = DateTime.now();
     final hideAt = _nextRide!.start.subtract(const Duration(minutes: 1));
     return now.isAfter(hideAt);
+  }
+
+  Future<void> _maybeAutoEndRide() async {
+    if (_prefs == null) return;
+    if (_showFeedback || _endFeedbackGiven || _pendingFeedbackThresholdId != null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final endLocal = _prefs!.commuteWindows.endLocal;
+    final rideEndToday = DateTime(
+        now.year, now.month, now.day, endLocal.hour, endLocal.minute);
+
+    if (now.isAfter(rideEndToday)) {
+      final thresholdId = await _prefsService.getCurrentThresholdId();
+      await _prefsService.setPendingFeedback(DateTime.now());
+      if (thresholdId != null) {
+        await _prefsService.setPendingFeedbackThresholdId(thresholdId);
+      } else {
+        await _prefsService.setPendingFeedbackThresholdId(
+            'auto-${rideEndToday.toIso8601String()}');
+      }
+
+      _nextRide = _determineNextRide(now);
+
+      if (!mounted) return;
+      setState(() {
+        _showFeedback = true;
+        _endFeedbackGiven = false;
+        _pendingFeedbackThresholdId = thresholdId;
+      });
+
+      await _notificationService.showFeedbackNotification();
+    }
   }
 
   RideSlot? _determineNextRide(DateTime start) {
@@ -166,12 +202,15 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (thresholdId == null) return;
     await _prefsService.setPendingFeedback(DateTime.now());
     await _prefsService.setPendingFeedbackThresholdId(thresholdId);
+    _nextRide = _determineNextRide(DateTime.now());
     if (!mounted) return;
     setState(() {
       _showFeedback = true;
       _endFeedbackGiven = false;
       _pendingFeedbackThresholdId = thresholdId;
     });
+
+    await _notificationService.showFeedbackNotification();
   }
 
   Future<void> _dismissFeedback() async {
@@ -276,69 +315,76 @@ class _DashboardScreenState extends State<DashboardScreen>
 
             // Commute Feedback Card
             if (showFeedback) ...[
-              StandardCard(
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    Icons.feedback,
-                    color: _endFeedbackGiven
-                        ? Theme.of(context).colorScheme.secondary
-                        : Theme.of(context).colorScheme.error,
-                  ),
-                  title: Text(
-                    _endFeedbackGiven
-                        ? 'Feedback submitted for your last ride'
-                        : 'Feedback available for your last ride',
-                  ),
-                  subtitle: !_endFeedbackGiven
-                      ? const Text(
-                          'Tap to give feedback or close if your ride was fine.',
-                        )
-                      : null,
-                  onTap: _endFeedbackGiven
-                      ? null
-                      : () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PostRideFeedbackScreen(
-                                commute: 'end',
-                              ),
-                            ),
-                          );
-                          if (result != null) {
-                            setState(() {
-                              _feedbackSummary = result['summary'] as String;
-                              _endFeedbackGiven = true;
-                              if (_pendingFeedbackThresholdId != null) {
-                                _prefsService.setFeedbackSubmitted(
-                                    _pendingFeedbackThresholdId!, true);
-                              } else if (_pendingRide != null) {
-                                _prefsService.setFeedbackSubmitted(
-                                    _pendingRide!.rideId, true);
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  StandardCard(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.feedback,
+                        color: _endFeedbackGiven
+                            ? Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).colorScheme.error,
+                      ),
+                      title: Text(
+                        _endFeedbackGiven
+                            ? 'Feedback submitted for your last ride'
+                            : 'Feedback available for your last ride',
+                      ),
+                      subtitle: !_endFeedbackGiven
+                          ? const Text(
+                              'Tap to give feedback or close if your ride was fine.',
+                            )
+                          : null,
+                      onTap: _endFeedbackGiven
+                          ? null
+                          : () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const PostRideFeedbackScreen(
+                                    commute: 'end',
+                                  ),
+                                ),
+                              );
+                              if (result != null) {
+                                setState(() {
+                                  _feedbackSummary = result['summary'] as String;
+                                  _endFeedbackGiven = true;
+                                  if (_pendingFeedbackThresholdId != null) {
+                                    _prefsService.setFeedbackSubmitted(
+                                        _pendingFeedbackThresholdId!, true);
+                                  } else if (_pendingRide != null) {
+                                    _prefsService.setFeedbackSubmitted(
+                                        _pendingRide!.rideId, true);
+                                  }
+                                  _showFeedback = false;
+                                  _pendingFeedbackThresholdId = null;
+                                });
+                                _prefsService.setEndFeedbackGiven(DateTime.now());
+                                _prefsService.setPendingFeedback(null);
+                                _prefsService
+                                    .setPendingFeedbackThresholdId(null);
                               }
-                              _showFeedback = false;
-                              _pendingFeedbackThresholdId = null;
-                            });
-                            _prefsService.setEndFeedbackGiven(DateTime.now());
-                            _prefsService.setPendingFeedback(null);
-                            _prefsService.setPendingFeedbackThresholdId(null);
-                          }
-                        },
-                ),
-              ),
-              if (!_endFeedbackGiven)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.close),
-                      label: const Text('Close'),
-                      onPressed: _dismissFeedback,
+                            },
                     ),
                   ),
-                ),
+                  if (!_endFeedbackGiven)
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(top: 8.0, right: 16.0),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.close),
+                          label: const Text('Close'),
+                          onPressed: _dismissFeedback,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
 
             // Commute Status Panel
