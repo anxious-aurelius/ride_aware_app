@@ -7,6 +7,7 @@ import 'package:active_commuter_support/services/preferences_service.dart';
 import 'package:active_commuter_support/widgets/upcoming_commute_alert.dart';
 import 'package:active_commuter_support/widgets/standard_card.dart';
 import 'package:active_commuter_support/widgets/standard_list_tile.dart';
+import 'package:active_commuter_support/widgets/ride_feedback_card.dart';
 import 'package:active_commuter_support/screens/post_ride_feedback_screen.dart';
 import 'package:active_commuter_support/screens/history_screen.dart';
 import 'package:active_commuter_support/services/api_service.dart';
@@ -245,6 +246,35 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
+  Future<void> _openFeedbackForm() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PostRideFeedbackScreen(
+          commute: 'end',
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _feedbackSummary = result['summary'] as String;
+        _endFeedbackGiven = true;
+        if (_pendingFeedbackThresholdId != null) {
+          _prefsService.setFeedbackSubmitted(
+              _pendingFeedbackThresholdId!, true);
+        } else if (_pendingRide != null) {
+          _prefsService.setFeedbackSubmitted(
+              _pendingRide!.rideId, true);
+        }
+        _showFeedback = false;
+        _pendingFeedbackThresholdId = null;
+      });
+      await _prefsService.setEndFeedbackGiven(DateTime.now());
+      await _prefsService.setPendingFeedback(null);
+      await _prefsService.setPendingFeedbackThresholdId(null);
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -314,78 +344,12 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
 
             // Commute Feedback Card
-            if (showFeedback) ...[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  StandardCard(
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        Icons.feedback,
-                        color: _endFeedbackGiven
-                            ? Theme.of(context).colorScheme.secondary
-                            : Theme.of(context).colorScheme.error,
-                      ),
-                      title: Text(
-                        _endFeedbackGiven
-                            ? 'Feedback submitted for your last ride'
-                            : 'Feedback available for your last ride',
-                      ),
-                      subtitle: !_endFeedbackGiven
-                          ? const Text(
-                              'Tap to give feedback or close if your ride was fine.',
-                            )
-                          : null,
-                      onTap: _endFeedbackGiven
-                          ? null
-                          : () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const PostRideFeedbackScreen(
-                                    commute: 'end',
-                                  ),
-                                ),
-                              );
-                              if (result != null) {
-                                setState(() {
-                                  _feedbackSummary = result['summary'] as String;
-                                  _endFeedbackGiven = true;
-                                  if (_pendingFeedbackThresholdId != null) {
-                                    _prefsService.setFeedbackSubmitted(
-                                        _pendingFeedbackThresholdId!, true);
-                                  } else if (_pendingRide != null) {
-                                    _prefsService.setFeedbackSubmitted(
-                                        _pendingRide!.rideId, true);
-                                  }
-                                  _showFeedback = false;
-                                  _pendingFeedbackThresholdId = null;
-                                });
-                                _prefsService.setEndFeedbackGiven(DateTime.now());
-                                _prefsService.setPendingFeedback(null);
-                                _prefsService
-                                    .setPendingFeedbackThresholdId(null);
-                              }
-                            },
-                    ),
-                  ),
-                  if (!_endFeedbackGiven)
-                    Padding(
-                      padding:
-                          const EdgeInsets.only(top: 8.0, right: 16.0),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          icon: const Icon(Icons.close),
-                          label: const Text('Close'),
-                          onPressed: _dismissFeedback,
-                        ),
-                      ),
-                    ),
-                ],
+            if (showFeedback)
+              RideFeedbackCard(
+                feedbackGiven: _endFeedbackGiven,
+                onTap: _endFeedbackGiven ? null : _openFeedbackForm,
+                onClose: _dismissFeedback,
               ),
-            ],
 
             // Commute Status Panel
             UpcomingCommuteAlert(
