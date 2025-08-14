@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from pymongo.errors import PyMongoError
+from bson import ObjectId
 from models.ride_history import RideHistoryEntry
 from services.db import ride_history_collection
 from services.weather_history_service import (
@@ -11,6 +12,16 @@ from services.weather_history_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _serialize(obj):
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    if isinstance(obj, list):
+        return [_serialize(item) for item in obj]
+    if isinstance(obj, dict):
+        return {k: _serialize(v) for k, v in obj.items()}
+    return obj
 
 
 async def create_history_entry(
@@ -104,5 +115,6 @@ async def fetch_rides(device_id: str, last_days: int = 30):
         doc.pop("_id", None)
         history = await fetch_weather_history(doc["threshold_id"])
         doc["weather_history"] = history
+        doc = _serialize(doc)
         rides.append(RideHistoryEntry(**doc).model_dump(mode="json"))
     return rides
