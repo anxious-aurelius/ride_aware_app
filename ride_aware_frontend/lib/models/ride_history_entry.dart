@@ -27,8 +27,11 @@ class RideHistoryEntry {
     final endStr = json['end_time'] as String;
     final start = DateTime.parse('${date}T$startStr');
     final end = DateTime.parse('${date}T$endStr');
+    final id = (json['ride_id'] as String?) ??
+        (json['threshold_id'] as String?) ??
+        '';
     return RideHistoryEntry(
-      rideId: json['ride_id'] as String,
+      rideId: id,
       start: start,
       end: end,
       status: json['status'] as String,
