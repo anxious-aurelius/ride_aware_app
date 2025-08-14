@@ -85,9 +85,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _refreshFeedbackFlag() async {
     final pendingId = await _prefsService.getPendingFeedbackThresholdId();
-    final hasPending = pendingId != null
-        ? true
-        : await _prefsService.hasPendingFeedback();
     final submitted = pendingId != null
         ? await _prefsService.getFeedbackSubmitted(pendingId)
         : false;
@@ -96,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     setState(() {
       _pendingFeedbackThresholdId = pendingId;
       _endFeedbackGiven = submitted;
-      _showFeedback = hasPending && !submitted && !hideForNextRide;
+      _showFeedback = pendingId != null && !submitted && !hideForNextRide;
     });
   }
 
@@ -278,7 +275,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
 
             // Commute Feedback Card
-            if (showFeedback)
+            if (showFeedback) ...[
               StandardCard(
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -296,13 +293,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                   subtitle: !_endFeedbackGiven
                       ? const Text(
                           'Tap to give feedback or close if your ride was fine.',
-                        )
-                      : null,
-                  trailing: !_endFeedbackGiven
-                      ? IconButton(
-                          icon: const Icon(Icons.close),
-                          tooltip: 'No issues',
-                          onPressed: _dismissFeedback,
                         )
                       : null,
                   onTap: _endFeedbackGiven
@@ -337,6 +327,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                         },
                 ),
               ),
+              if (!_endFeedbackGiven)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.close),
+                      label: const Text('Close'),
+                      onPressed: _dismissFeedback,
+                    ),
+                  ),
+                ),
+            ],
 
             // Commute Status Panel
             UpcomingCommuteAlert(
