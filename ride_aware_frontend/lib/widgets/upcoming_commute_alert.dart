@@ -19,12 +19,12 @@ class _WeatherMetric {
   final Color color;
 
   const _WeatherMetric(
-    this.icon,
-    this.caption,
-    this.description,
-    this.subDescription,
-    this.color,
-  );
+      this.icon,
+      this.caption,
+      this.description,
+      this.subDescription,
+      this.color,
+      );
 }
 
 class _StatusInfo {
@@ -57,7 +57,6 @@ class UpcomingCommuteAlert extends StatefulWidget {
   });
 
   @override
-  @override
   State<UpcomingCommuteAlert> createState() => UpcomingCommuteAlertState();
 }
 
@@ -78,7 +77,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   final GlobalKey<FormState> _thresholdFormKey = GlobalKey<FormState>();
   bool _showThresholdForm = false;
   bool _isSaving = false;
-  bool _preRideNotificationShown = false;
+
+  // PRE-RIDE NOTIFICATION STATE
+  DateTime? _preRideAlertSentForDate; // midnight-normalized date we’ve alerted for
 
   UserPreferences? _prefs;
 
@@ -99,21 +100,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   void _onUpdate() {
+    // Keep UI refreshes, but DO NOT send alerts here.
+    // Pre-ride alerts are now time-gated via maybePreRideAlertCheck()
     setState(() {});
-    if (!_vm.isLoading &&
-        _vm.result != null &&
-        !_preRideNotificationShown) {
-      final r = _vm.result!;
-      final hasProblems =
-          r.status != 'ok' || r.issues.isNotEmpty || r.borderline.isNotEmpty;
-      if (hasProblems) {
-        final parts = [...r.issues, ...r.borderline];
-        final message =
-            parts.isNotEmpty ? parts.join(' • ') : 'Check ride conditions';
-        NotificationService().showPreRideAlert(message);
-        _preRideNotificationShown = true;
-      }
-    }
   }
 
   Future<void> _loadPrefs() async {
@@ -123,13 +112,59 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     });
   }
 
+  /// Called by Dashboard every ~20s.
+  /// Fires exactly once inside the 3-hour window before the next ride start.
+  void maybePreRideAlertCheck() async {
+    if (_prefs == null) return;
+    if (_vm.isLoading || _vm.result == null) return;
+
+    final now = DateTime.now();
+    final startTod = _prefs!.commuteWindows.startLocal;
+
+    // Determine the next ride's start (today if still upcoming, else tomorrow)
+    DateTime rideStart = DateTime(now.year, now.month, now.day, startTod.hour, startTod.minute);
+    if (now.isAfter(rideStart)) {
+      final d = now.add(const Duration(days: 1));
+      rideStart = DateTime(d.year, d.month, d.day, startTod.hour, startTod.minute);
+    }
+
+    // Has an alert already been sent for that ride day?
+    final rideDayKey = DateTime(rideStart.year, rideStart.month, rideStart.day);
+    if (_preRideAlertSentForDate != null &&
+        _preRideAlertSentForDate!.year == rideDayKey.year &&
+        _preRideAlertSentForDate!.month == rideDayKey.month &&
+        _preRideAlertSentForDate!.day == rideDayKey.day) {
+      return; // already alerted for this ride day
+    }
+
+    final windowStart = rideStart.subtract(const Duration(hours: 3));
+
+    // Only alert inside the 3-hour window (and before the ride actually starts)
+    if (now.isAfter(windowStart) && now.isBefore(rideStart)) {
+      final r = _vm.result!;
+      final hasProblems = r.status != 'ok' || r.issues.isNotEmpty || r.borderline.isNotEmpty;
+      final parts = <String>[...r.issues, ...r.borderline];
+
+      final message = hasProblems
+          ? (parts.isNotEmpty ? parts.join(' • ')
+          : 'Conditions may be challenging. Prepare accordingly.')
+          : 'All clear for your ride in ~3 hours.';
+
+      await NotificationService().showPreRideAlert(message);
+      _preRideAlertSentForDate = rideDayKey;
+      if (kDebugMode) {
+        debugPrint('🔔 Pre-ride alert sent for $rideDayKey: $message');
+      }
+    }
+  }
+
   String _formatTimeOfDay(TimeOfDay? time) {
     if (time == null) return '--:--';
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   void refreshForecast() {
-    _preRideNotificationShown = false;
+    // NOTE: we do NOT reset _preRideAlertSentForDate here to avoid duplicates
     _vm.load();
   }
 
@@ -203,7 +238,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             if (showPostCommuteCard) ...[
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -266,10 +301,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   Widget _buildStatusHeader(
-    ThemeData theme,
-    _StatusInfo status,
-    CommuteAlertResult result,
-  ) {
+      ThemeData theme,
+      _StatusInfo status,
+      CommuteAlertResult result,
+      ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -376,10 +411,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   Widget _buildWeatherMetrics(
-    ThemeData theme,
-    CommuteAlertResult result,
-    WeatherLimits limits,
-  ) {
+      ThemeData theme,
+      CommuteAlertResult result,
+      WeatherLimits limits,
+      ) {
     // Temperature evaluation
     final minTemp = parseDouble(result.summary['min_temp']);
     final maxTemp = parseDouble(result.summary['max_temp']);
@@ -496,9 +531,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   Widget _buildEnhancedWeatherGrid(
-    List<_WeatherMetric> metrics,
-    ThemeData theme,
-  ) {
+      List<_WeatherMetric> metrics,
+      ThemeData theme,
+      ) {
     return Column(
       children: [
         // First row - Temperature (full width)
@@ -543,10 +578,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   Widget _buildEnhancedWeatherCard(
-    _WeatherMetric metric,
-    ThemeData theme, {
-    bool isFullWidth = false,
-  }) {
+      _WeatherMetric metric,
+      ThemeData theme, {
+        bool isFullWidth = false,
+      }) {
     final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -626,26 +661,26 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     switch (metricName) {
       case 'Humidity':
         message =
-            'Humidity is above your set range. Consider bringing an extra water bottle.';
+        'Humidity is above your set range. Consider bringing an extra water bottle.';
         break;
       case 'Too Cold':
       case 'Too Warm':
         message =
-            'Temperature is outside your comfort zone. Consider taking alternative transport or dressing appropriately.';
+        'Temperature is outside your comfort zone. Consider taking alternative transport or dressing appropriately.';
         break;
       case 'Wind Speed':
       case 'Wind Direction':
         message =
-            'Wind conditions are too strong. Consider taking an alternative route.';
+        'Wind conditions are too strong. Consider taking an alternative route.';
         break;
       case 'Rain':
       case 'Precipitation':
         message =
-            'Rain is expected. Consider carrying rainwear or waterproof gear.';
+        'Rain is expected. Consider carrying rainwear or waterproof gear.';
         break;
       default:
         message =
-            'Weather condition is outside your preferred range. Be careful.';
+        'Weather condition is outside your preferred range. Be careful.';
     }
 
     showDialog(
@@ -825,10 +860,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 onPressed: _isSaving
                     ? null
                     : () {
-                        setState(() {
-                          _showThresholdForm = false;
-                        });
-                      },
+                  setState(() {
+                    _showThresholdForm = false;
+                  });
+                },
                 child: const Text('Cancel'),
               ),
               const SizedBox(width: 8),
@@ -836,10 +871,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 onPressed: _isSaving ? null : _saveThresholds,
                 child: _isSaving
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
                     : const Text('Save'),
               ),
             ],
@@ -862,18 +897,12 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         signed: true,
       ),
       inputFormatters: [
-        // Allow optional leading minus sign and decimal numbers.
-        // The previous regex mistakenly escaped the digit matcher (\d),
-        // blocking numeric input. This pattern restores responsiveness while
-        // still restricting input to valid numeric characters.
-        FilteringTextInputFormatter.allow(
-          RegExp(r'^-?[0-9]*\.?[0-9]*'),
-        ),
+        FilteringTextInputFormatter.allow(RegExp(r'^-?[0-9]*\.?[0-9]*')),
       ],
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: const InputDecoration(
+        labelText: '',
+        border: OutlineInputBorder(),
+      ).copyWith(labelText: label),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'This field is required';
@@ -952,11 +981,11 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       );
 
       final feedbackGiven =
-          await _preferencesService.isEndFeedbackGivenToday();
+      await _preferencesService.isEndFeedbackGivenToday();
       final String? oldThresholdId =
-          await _preferencesService.getCurrentThresholdId();
+      await _preferencesService.getCurrentThresholdId();
       final String? newThresholdId =
-          await _apiService.submitThresholds(updatedPrefs);
+      await _apiService.submitThresholds(updatedPrefs);
       await _preferencesService.savePreferencesWithDeviceId(updatedPrefs);
       await _preferencesService.clearEndFeedbackGiven();
       if (newThresholdId != null && !feedbackGiven && oldThresholdId != null) {
@@ -995,10 +1024,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   Widget _buildIssuesSection(
-    CommuteAlertResult result,
-    Color color,
-    ThemeData theme,
-  ) {
+      CommuteAlertResult result,
+      Color color,
+      ThemeData theme,
+      ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Container(
@@ -1037,7 +1066,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             ),
             const SizedBox(height: 12),
             ...result.issues.map(
-              (issue) => Padding(
+                  (issue) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

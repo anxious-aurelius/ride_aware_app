@@ -56,8 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   String? _pendingFeedbackThresholdId;
 
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
-      GlobalKey<UpcomingCommuteAlertState>();
-
+  GlobalKey<UpcomingCommuteAlertState>();
 
   @override
   void initState() {
@@ -67,11 +66,15 @@ class _DashboardScreenState extends State<DashboardScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _alertKey.currentState?.refreshForecast();
     });
+
+    // Periodic heartbeat:
     _tick = Timer.periodic(const Duration(seconds: 20), (_) async {
       await _maybeAutoEndRide();
+      _alertKey.currentState?.maybePreRideAlertCheck();
       if (!mounted) return;
-      setState(() {}); // existing periodic refresh
+      setState(() {}); // keep UI fresh
     });
+
     _refreshFeedbackFlag();
     _feedbackTicker =
         Timer.periodic(const Duration(minutes: 1), (_) => _refreshFeedbackFlag());
@@ -109,9 +112,16 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _maybeAutoEndRide() async {
     if (_prefs == null) return;
-    if (_showFeedback || _endFeedbackGiven || _pendingFeedbackThresholdId != null) {
-      return;
-    }
+
+    // robust guards (persisted + in-memory)
+    if (_showFeedback) return;
+    if (_endFeedbackGiven) return;
+    final alreadyPendingId = await _prefsService.getPendingFeedbackThresholdId();
+    if (alreadyPendingId != null) return; // already created; don't redo
+
+    // extra guard in case memory flag got stale
+    final endGivenToday = await _prefsService.isEndFeedbackGivenToday();
+    if (endGivenToday) return;
 
     final now = DateTime.now();
     final endLocal = _prefs!.commuteWindows.endLocal;
@@ -120,13 +130,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     if (now.isAfter(rideEndToday)) {
       final thresholdId = await _prefsService.getCurrentThresholdId();
+      final usedId =
+          thresholdId ?? 'auto-${rideEndToday.toIso8601String()}';
+
+      // create pending exactly once
       await _prefsService.setPendingFeedback(DateTime.now());
-      if (thresholdId != null) {
-        await _prefsService.setPendingFeedbackThresholdId(thresholdId);
-      } else {
-        await _prefsService.setPendingFeedbackThresholdId(
-            'auto-${rideEndToday.toIso8601String()}');
-      }
+      await _prefsService.setPendingFeedbackThresholdId(usedId);
 
       _nextRide = _determineNextRide(now);
 
@@ -134,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       setState(() {
         _showFeedback = true;
         _endFeedbackGiven = false;
-        _pendingFeedbackThresholdId = thresholdId;
+        _pendingFeedbackThresholdId = usedId; // <- use the actual persisted ID
       });
 
       await _notificationService.showFeedbackNotification();
@@ -199,8 +208,13 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _manualEndRide() async {
+    // avoid duplicates
+    final alreadyPendingId = await _prefsService.getPendingFeedbackThresholdId();
+    if (alreadyPendingId != null) return;
+
     final thresholdId = await _prefsService.getCurrentThresholdId();
     if (thresholdId == null) return;
+
     await _prefsService.setPendingFeedback(DateTime.now());
     await _prefsService.setPendingFeedbackThresholdId(thresholdId);
     _nextRide = _determineNextRide(DateTime.now());
@@ -224,7 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       'precipitation_ok': true,
       'humidity_ok': true,
       'summary':
-          'No issues reported. User closed the feedback without filling.',
+      'No issues reported. User closed the feedback without filling.',
     };
     try {
       await _apiService.submitFeedback(payload);
@@ -239,7 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted) return;
     setState(() {
       _feedbackSummary =
-          'No issues reported. You had no problem with current threshold.';
+      'No issues reported. You had no problem with current threshold.';
       _endFeedbackGiven = true;
       _showFeedback = false;
       _pendingFeedbackThresholdId = null;
@@ -282,7 +296,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     _resetFlagsIfNewDay();
@@ -317,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: [
             const SizedBox(height: 16),
 
-            // Welcome Section
+            // Welcome
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -343,7 +356,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
 
-            // Commute Feedback Card
+            // Post-ride feedback card
             if (showFeedback)
               RideFeedbackCard(
                 feedbackGiven: _endFeedbackGiven,
@@ -357,8 +370,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               feedbackSummary: _feedbackSummary,
               onThresholdUpdated: _loadPrefs,
 
-              onRideStarted: (
-                String rideId, DateTime start, Map<String, dynamic> threshold) async {
+              onRideStarted: (String rideId, DateTime start,
+                  Map<String, dynamic> threshold) async {
                 // Hide any pending feedback when a new ride begins
                 await _prefsService.setPendingFeedback(null);
                 await _prefsService.setPendingFeedbackThresholdId(null);
@@ -377,9 +390,30 @@ class _DashboardScreenState extends State<DashboardScreen>
                   String status,
                   Map<String, dynamic> summary,
                   Map<String, dynamic> threshold,
-                  List<Map<String, dynamic>> weatherHistory) async {
+                  List<Map<String, dynamic>> weatherHistory,
+                  ) async {
+                // --- IDEMPOTENT GUARDS ---
+                // 1) Already submitted? bail.
+                final alreadySubmitted =
+                    await _prefsService.getFeedbackSubmitted(rideId) ?? false;
+                if (alreadySubmitted) {
+                  // do not re-show card / re-notify
+                  return;
+                }
+                // 2) Already pending with same ID? bail.
+                final existingPending =
+                await _prefsService.getPendingFeedbackThresholdId();
+                if (existingPending == rideId) {
+                  return;
+                }
+                // 3) If another pending ID exists (rare), don't override to avoid thrash.
+                if (existingPending != null && existingPending != rideId) {
+                  return;
+                }
+                // --------------------------
+
                 final weatherPoints =
-                    weatherHistory.map((e) => WeatherPoint.fromJson(e)).toList();
+                weatherHistory.map((e) => WeatherPoint.fromJson(e)).toList();
                 final entry = RideHistoryEntry(
                   rideId: rideId,
                   start: start,
@@ -408,8 +442,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                   _pendingFeedbackThresholdId = rideId;
                 });
 
+                // mark pending once
                 await _prefsService.setPendingFeedback(DateTime.now());
                 await _prefsService.setPendingFeedbackThresholdId(rideId);
+
+                // notify once
                 await _notificationService.showFeedbackNotification();
               },
             ),
@@ -442,10 +479,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                     onChanged: (value) async {
                       if (value) {
                         final granted =
-                            await _notificationService.requestPermissions();
+                        await _notificationService.requestPermissions();
                         if (granted) setState(() {});
                       } else {
-                        // No direct way to revoke permissions; just ignore
+                        // cannot revoke here; user can in OS settings
                       }
                     },
                   ),
@@ -453,29 +490,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               },
             ),
 
-            // // Feedback Summary Card
-            // Card(
-            //   margin: const EdgeInsets.all(16),
-            //   child: Padding(
-            //     padding: const EdgeInsets.all(16),
-            //     child: Column(
-            //       children: [
-            //         const Icon(Icons.insights, size: 48),
-            //         const SizedBox(height: 8),
-            //         Text(
-            //           _feedbackSummary,
-            //           textAlign: TextAlign.center,
-            //           style: const TextStyle(
-            //             fontSize: 18,
-            //             fontWeight: FontWeight.bold,
-            //           ),
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-            // ),
-
-            // App Refresh Card
             StandardListTile(
               icon: Icons.refresh,
               title: 'Refresh App',
@@ -483,7 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               onTap: () {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const AppInitializer()),
-                  (route) => false,
+                      (route) => false,
                 );
               },
             ),

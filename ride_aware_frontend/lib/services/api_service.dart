@@ -11,7 +11,7 @@ import 'preferences_service.dart';
 
 class ApiService {
   // TODO: Replace with actual API base URL
-  static const String baseUrl = 'http://81.17.60.64:8888';
+  static const String baseUrl = 'http://10.0.2.2:8889';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
   final PreferencesService _preferencesService = PreferencesService();
@@ -35,7 +35,7 @@ class ApiService {
 
       final now = DateTime.now();
       final scheduledStart =
-          pickScheduledStart(now, preferences.commuteWindows.startLocal);
+      pickScheduledStart(now, preferences.commuteWindows.startLocal);
       final requestBody = {
         'device_id': deviceId,
         'date': yyyymmdd(scheduledStart),
@@ -237,7 +237,7 @@ class ApiService {
   Future<void> submitFeedback(Map<String, dynamic> feedback) async {
     try {
       final pendingId =
-          await _preferencesService.getPendingFeedbackThresholdId();
+      await _preferencesService.getPendingFeedbackThresholdId();
       final currentId = await _preferencesService.getCurrentThresholdId();
       final thresholdId = pendingId ?? currentId;
       if (thresholdId == null) {
@@ -285,7 +285,7 @@ class ApiService {
     }
   }
 
-  /// Fetch ride history for the last [lastDays] days
+  /// Fetch ride history for the last [lastDays] days (typed model)
   Future<List<RideHistoryEntry>> fetchRideHistory({int lastDays = 30}) async {
     try {
       final String? deviceId = await _deviceIdService.getParticipantIdHash();
@@ -318,15 +318,51 @@ class ApiService {
     }
   }
 
+  // ------------------------------
+  // NEW: raw ride history with full payload (incl. weather_history)
+  // ------------------------------
+  Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({int lastDays = 30}) async {
+    final String? deviceId = await _deviceIdService.getParticipantIdHash();
+    if (deviceId == null) {
+      throw Exception('Participant ID not available. Cannot fetch history.');
+    }
+
+    // Matches your existing endpoint and query params.
+    final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
+      'device_id': deviceId,
+      'lastDays': lastDays.toString(),
+    });
+
+    final resp = await http.get(uri, headers: await _getHeaders());
+
+    if (kDebugMode) {
+      print('📡 Ride History Raw Fetch: ${resp.statusCode}');
+      if (resp.body.isNotEmpty) {
+        print('   Body: ${resp.body}');
+      }
+    }
+
+    if (resp.statusCode != 200) {
+      throw Exception('Failed to load ride history: ${resp.statusCode} ${resp.body}');
+    }
+
+    final decoded = jsonDecode(resp.body);
+    if (decoded is! List) return const [];
+
+    return decoded.map<Map<String, dynamic>>((e) {
+      // Defensive cast to Map<String, dynamic>
+      return Map<String, dynamic>.from(e as Map);
+    }).toList();
+  }
+  // ------------------------------
+
   /// Get standard headers for API requests
   Future<Map<String, String>> _getHeaders() async {
     final String? deviceId = await _deviceIdService.getParticipantIdHash();
 
     return {
       'Content-Type': 'application/json',
-      'X-Device-Id':
-          deviceId ??
-          'unknown', // Provide a fallback if ID is null, though it should be handled upstream
+      'X-Device-Id': deviceId ?? 'unknown',
     };
   }
 
@@ -348,9 +384,9 @@ class ApiService {
 
   /// Helper method for POST requests with device ID
   Future<http.Response> _postWithDeviceId(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+      String endpoint,
+      Map<String, dynamic> body,
+      ) async {
     final String? deviceId = await _deviceIdService.getParticipantIdHash();
     if (deviceId == null) {
       throw Exception(
