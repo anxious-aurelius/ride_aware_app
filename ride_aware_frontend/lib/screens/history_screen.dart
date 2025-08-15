@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+
 import '../services/api_service.dart';
+import 'ride_details_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -116,8 +118,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           TableCalendar<Map<String, dynamic>>(
             firstDay:
             DateTime.now().subtract(const Duration(days: 365)),
-            lastDay:
-            DateTime.now().add(const Duration(days: 365)),
+            lastDay: DateTime.now().add(const Duration(days: 365)),
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) =>
                 isSameDay(_selectedDay, day),
@@ -134,8 +135,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 shape: BoxShape.circle,
               ),
               todayDecoration: BoxDecoration(
-                color:
-                theme.colorScheme.primary.withOpacity(0.35),
+                color: theme.colorScheme.primary.withOpacity(0.35),
                 shape: BoxShape.circle,
               ),
               markerDecoration: BoxDecoration(
@@ -163,7 +163,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 final ride = entries[i];
                 return _RideCard(
                   ride: ride,
-                  onTap: () => _showRideDetails(ride),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            RideDetailsScreen(ride: ride),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -173,227 +180,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // -------------------- detail sheet --------------------
-
-  void _showRideDetails(Map<String, dynamic> ride) {
-    final start = _composeLocalDateTime(ride['date'], ride['start_time']);
-    final end = _composeLocalDateTime(ride['date'], ride['end_time']);
-    final status = (ride['status'] ?? '').toString();
-    final feedback = (ride['feedback'] ?? '').toString();
-    final summary = (ride['summary'] ?? {}) as Map<String, dynamic>;
-    final threshold = (ride['threshold'] ?? {}) as Map<String, dynamic>;
-    final weatherHistory =
-    (ride['weather_history'] ?? []) as List<dynamic>;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (_) {
-        return DefaultTabController(
-          length: 3,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      Text(
-                        '${_hm(start)}–${_hm(end)}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 8),
-                      _StatusChip(status: status),
-                      const Spacer(),
-                      IconButton(
-                        tooltip: 'Close',
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if (feedback.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        feedback,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-
-                  const TabBar(
-                    tabs: [
-                      Tab(text: 'Overview', icon: Icon(Icons.list_alt)),
-                      Tab(text: 'Threshold', icon: Icon(Icons.tune)),
-                      Tab(text: 'Weather', icon: Icon(Icons.wb_cloudy)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        // Overview
-                        SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _kv('Status', status.isEmpty ? '—' : status),
-                              _kv('Date', (ride['date'] ?? '—').toString()),
-                              _kv('Start', _hm(start)),
-                              _kv('End', _hm(end)),
-                              const SizedBox(height: 12),
-                              if (summary.isNotEmpty) ...[
-                                Text('Summary',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium),
-                                const SizedBox(height: 6),
-                                _PrettyMap(summary),
-                              ] else
-                                Text('No summary.',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium),
-                            ],
-                          ),
-                        ),
-
-                        // Threshold
-                        SingleChildScrollView(
-                          child: threshold.isEmpty
-                              ? Text('No threshold snapshot.',
-                              style:
-                              Theme.of(context).textTheme.bodyMedium)
-                              : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _sectionCard(
-                                title: 'Snapshot',
-                                children: [
-                                  _kv('Device ID',
-                                      (threshold['device_id'] ?? '—')
-                                          .toString()),
-                                  _kv('Date',
-                                      (threshold['date'] ?? '—')
-                                          .toString()),
-                                  _kv('Start',
-                                      (threshold['start_time'] ?? '—')
-                                          .toString()),
-                                  _kv('End',
-                                      (threshold['end_time'] ?? '—')
-                                          .toString()),
-                                  _kv('Timezone',
-                                      (threshold['timezone'] ?? '—')
-                                          .toString()),
-                                  _kv('Presence radius (m)',
-                                      (threshold['presence_radius_m'] ??
-                                          '—')
-                                          .toString()),
-                                  _kv('Speed cutoff (km/h)',
-                                      (threshold['speed_cutoff_kmh'] ??
-                                          '—')
-                                          .toString()),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              if (threshold['weather_limits']
-                              is Map<String, dynamic>)
-                                _sectionCard(
-                                  title: 'Weather Limits',
-                                  children: _kvList(
-                                      Map<String, dynamic>.from(
-                                          threshold['weather_limits'])),
-                                ),
-                              const SizedBox(height: 10),
-                              if (threshold['office_location']
-                              is Map<String, dynamic>)
-                                _sectionCard(
-                                  title: 'Office Location',
-                                  children: _kvList(
-                                      Map<String, dynamic>.from(
-                                          threshold['office_location'])),
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        // Weather
-                        weatherHistory.isEmpty
-                            ? Center(
-                          child: Text(
-                            'No weather snapshots collected.',
-                            style:
-                            Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        )
-                            : ListView.separated(
-                          itemCount: weatherHistory.length,
-                          separatorBuilder: (_, __) =>
-                          const Divider(height: 1),
-                          itemBuilder: (context, i) {
-                            final snap = Map<String, dynamic>.from(
-                                weatherHistory[i] as Map);
-                            final tsStr =
-                            (snap['timestamp'] ?? '').toString();
-                            DateTime? ts;
-                            try {
-                              ts = DateTime.parse(tsStr).toLocal();
-                            } catch (_) {}
-                            final w = (snap['weather'] ??
-                                {}) as Map<String, dynamic>;
-
-                            final temp = w['temp_c'] ??
-                                w['temp'] ??
-                                w['temperature'];
-                            final wind = w['wind_ms'] ??
-                                w['wind_speed'] ??
-                                w['wind'];
-                            final cond = w['cond'] ??
-                                w['condition'] ??
-                                w['summary'];
-
-                            return ListTile(
-                              dense: true,
-                              leading: CircleAvatar(
-                                child: Text(
-                                  ts != null
-                                      ? '${ts.hour.toString().padLeft(2, '0')}\n${ts.minute.toString().padLeft(2, '0')}'
-                                      : '--\n--',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                              title: Text(
-                                'Temp: ${temp ?? '—'}   Wind: ${wind ?? '—'}',
-                              ),
-                              subtitle: cond != null
-                                  ? Text(cond.toString())
-                                  : null,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // -------------------- small UI helpers --------------------
+  // ---------- helpers still used by cards ----------
 
   static DateTime _composeLocalDateTime(dynamic dateIso, dynamic hhmm) {
     final d = (dateIso ?? '').toString();
@@ -410,89 +197,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     return DateTime.now();
   }
-
-  String _hm(DateTime dt) =>
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-
-  Widget _kv(String k, String v) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            k,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-        Expanded(flex: 3, child: Text(v)),
-      ],
-    ),
-  );
-
-  List<Widget> _kvList(Map<String, dynamic> m) {
-    final entries = m.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    return entries
-        .map((e) => _kv(e.key, (e.value ?? '—').toString()))
-        .toList();
-  }
-
-  Widget _sectionCard(
-      {required String title, required List<Widget> children}) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Pretty key–value listing for a flat map.
-class _PrettyMap extends StatelessWidget {
-  final Map<String, dynamic> map;
-  const _PrettyMap(this.map);
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = map.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: entries
-              .map((e) => Row(
-            children: [
-              Expanded(
-                  flex: 2,
-                  child: Text(e.key,
-                      style:
-                      const TextStyle(fontWeight: FontWeight.w600))),
-              Expanded(
-                  flex: 3,
-                  child: Text((e.value ?? '—').toString())),
-            ],
-          ))
-              .toList(),
-        ),
-      ),
-    );
-  }
 }
 
 class _RideCard extends StatelessWidget {
@@ -507,8 +211,10 @@ class _RideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final start = _HistoryScreenState._composeLocalDateTime(ride['date'], ride['start_time']);
-    final end   = _HistoryScreenState._composeLocalDateTime(ride['date'], ride['end_time']);
+    final start = _HistoryScreenState._composeLocalDateTime(
+        ride['date'], ride['start_time']);
+    final end =
+    _HistoryScreenState._composeLocalDateTime(ride['date'], ride['end_time']);
     final status = (ride['status'] ?? '').toString();
     final feedback = (ride['feedback'] ?? '').toString();
     final threshold = (ride['threshold'] ?? {}) as Map<String, dynamic>;
@@ -587,11 +293,16 @@ class _RideCard extends StatelessWidget {
 
   static Color _statusColor(String status) {
     switch (status) {
-      case 'alert': return Colors.red;
-      case 'warning': return Colors.orange;
-      case 'ok': return Colors.green;
-      case 'pending': return Colors.grey;
-      default: return Colors.blueGrey;
+      case 'alert':
+        return Colors.red;
+      case 'warning':
+        return Colors.orange;
+      case 'ok':
+        return Colors.green;
+      case 'pending':
+        return Colors.grey;
+      default:
+        return Colors.blueGrey;
     }
   }
 
@@ -616,7 +327,6 @@ class _RideCard extends StatelessWidget {
     );
   }
 }
-
 
 class _StatusChip extends StatelessWidget {
   final String status;
@@ -647,8 +357,11 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         status.isNotEmpty ? status : '—',
-        style:
-        TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
       ),
     );
   }

@@ -1,17 +1,18 @@
 # routes/weather_history.py
 import logging
-from fastapi import APIRouter, Body
-from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
 
-from services.weather_history_service import record_snapshot_from_device
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/weatherHistory", tags=["weather-history"])
+from services.weather_history_service import record_weather_ping
+
 logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/weatherHistory", tags=["weatherHistory"])
 
 
-class PingPayload(BaseModel):
+class WeatherPing(BaseModel):
     device_id: str = Field(..., min_length=6, max_length=64)
     threshold_id: str = Field(..., min_length=1)
     lat: float
@@ -20,12 +21,16 @@ class PingPayload(BaseModel):
 
 
 @router.post("/ping")
-async def weather_ping(payload: PingPayload = Body(...)):
-    await record_snapshot_from_device(
-        device_id=payload.device_id,
-        threshold_id=payload.threshold_id,
-        lat=payload.lat,
-        lon=payload.lon,
-        when=payload.timestamp,
-    )
-    return {"status": "ok"}
+async def ping(payload: WeatherPing):
+    try:
+        await record_weather_ping(
+            device_id=payload.device_id,
+            threshold_id=payload.threshold_id,
+            lat=payload.lat,
+            lon=payload.lon,
+            timestamp=payload.timestamp,
+        )
+        return {"status": "ok"}
+    except Exception as e:
+        logger.exception("weather ping error")
+        raise HTTPException(status_code=500, detail=str(e))
