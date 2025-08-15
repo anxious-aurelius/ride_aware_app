@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../viewmodels/upcoming_commute_view_model.dart';
@@ -68,8 +69,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   final TextEditingController _windSpeedController = TextEditingController();
   final TextEditingController _rainIntensityController = TextEditingController();
   final TextEditingController _humidityController = TextEditingController();
-  final TextEditingController _minTemperatureController = TextEditingController();
-  final TextEditingController _maxTemperatureController = TextEditingController();
+  final TextEditingController _minTemperatureController =
+  TextEditingController();
+  final TextEditingController _maxTemperatureController =
+  TextEditingController();
 
   double _headwindSensitivity = 20.0;
   double _crosswindSensitivity = 15.0;
@@ -100,8 +103,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   void _onUpdate() {
-    // Keep UI refreshes, but DO NOT send alerts here.
-    // Pre-ride alerts are now time-gated via maybePreRideAlertCheck()
     setState(() {});
   }
 
@@ -122,10 +123,12 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     final startTod = _prefs!.commuteWindows.startLocal;
 
     // Determine the next ride's start (today if still upcoming, else tomorrow)
-    DateTime rideStart = DateTime(now.year, now.month, now.day, startTod.hour, startTod.minute);
+    DateTime rideStart = DateTime(
+        now.year, now.month, now.day, startTod.hour, startTod.minute);
     if (now.isAfter(rideStart)) {
       final d = now.add(const Duration(days: 1));
-      rideStart = DateTime(d.year, d.month, d.day, startTod.hour, startTod.minute);
+      rideStart =
+          DateTime(d.year, d.month, d.day, startTod.hour, startTod.minute);
     }
 
     // Has an alert already been sent for that ride day?
@@ -142,11 +145,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     // Only alert inside the 3-hour window (and before the ride actually starts)
     if (now.isAfter(windowStart) && now.isBefore(rideStart)) {
       final r = _vm.result!;
-      final hasProblems = r.status != 'ok' || r.issues.isNotEmpty || r.borderline.isNotEmpty;
+      final hasProblems =
+          r.status != 'ok' || r.issues.isNotEmpty || r.borderline.isNotEmpty;
       final parts = <String>[...r.issues, ...r.borderline];
 
       final message = hasProblems
-          ? (parts.isNotEmpty ? parts.join(' • ')
+          ? (parts.isNotEmpty
+          ? parts.join(' • ')
           : 'Conditions may be challenging. Prepare accordingly.')
           : 'All clear for your ride in ~3 hours.';
 
@@ -164,8 +169,12 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   void refreshForecast() {
-    // NOTE: we do NOT reset _preRideAlertSentForDate here to avoid duplicates
     _vm.load();
+  }
+
+  /// Public: allows Dashboard bottom bar “Weather” button to pop the dialog.
+  void openHourlyForecast() {
+    _showHourlyForecastDialog();
   }
 
   @override
@@ -211,10 +220,12 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       showPostCommuteCard = now.isAfter(todayStartTime);
     }
 
+    final cs = theme.colorScheme;
+
+    // Neutral main card (no green fills)
     final mainCard = Card(
       margin: const EdgeInsets.all(16),
-      elevation: 8,
-      shadowColor: status.color.withOpacity(0.3),
+      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         decoration: BoxDecoration(
@@ -223,8 +234,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.surface,
-              theme.colorScheme.surface.withOpacity(0.8),
+              cs.surface,
+              cs.surface.withOpacity(0.92),
             ],
           ),
         ),
@@ -242,16 +253,16 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.green.withOpacity(0.15),
-                        Colors.green.withOpacity(0.05),
-                      ],
-                    ),
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    border: Border.all(color: Colors.green.withOpacity(0.35)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cs.outline.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,44 +311,36 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     return Column(children: cards);
   }
 
+  // ---------- Header (neutral, colored icon/dot only) ----------
   Widget _buildStatusHeader(
       ThemeData theme,
       _StatusInfo status,
       CommuteAlertResult result,
       ) {
+    final cs = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            status.color.withOpacity(0.15),
-            status.color.withOpacity(0.05),
-          ],
-        ),
+        color: cs.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(
+          bottom: BorderSide(color: cs.outlineVariant.withOpacity(0.25)),
+        ),
       ),
       child: Column(
         children: [
-          // Main header row
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: status.color.withOpacity(0.2),
+                  color: cs.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: status.color.withOpacity(0.3),
-                    width: 2,
-                  ),
+                  border:
+                  Border.all(color: cs.outlineVariant.withOpacity(0.35)),
                 ),
-                child: Icon(
-                  Icons.directions_bike,
-                  size: 28,
-                  color: status.color,
-                ),
+                child:
+                Icon(Icons.directions_bike, size: 28, color: cs.onSurface),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -345,37 +348,30 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                   t('Upcoming Commute'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
+                    color: cs.onSurface,
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: status.color,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: status.color.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: cs.surface,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: status.color.withOpacity(0.35)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(status.icon, color: Colors.white, size: 18),
+                    Icon(_statusIconFor(status.color),
+                        color: status.color, size: 18),
                     const SizedBox(width: 6),
                     Text(
                       t(status.label),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                      style: TextStyle(
+                        color: status.color,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -384,22 +380,15 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             ],
           ),
           const SizedBox(height: 12),
-          // Date/time row
           Row(
             children: [
-              const SizedBox(
-                width: 56,
-              ), // Align with text above (icon width + padding)
-              Icon(
-                Icons.schedule,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              const SizedBox(width: 56),
+              Icon(Icons.schedule, size: 16, color: cs.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(
                 _formatDateTime(result.time),
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: cs.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -410,6 +399,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     );
   }
 
+  IconData _statusIconFor(Color c) {
+    if (c == Colors.red) return Icons.dangerous_outlined;
+    if (c == Colors.amber) return Icons.error_outline;
+    return Icons.check_circle_outline;
+  }
+
+  // ---------- Weather Metrics ----------
   Widget _buildWeatherMetrics(
       ThemeData theme,
       CommuteAlertResult result,
@@ -442,8 +438,12 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     // Wind speed
     final windSpeed = parseDouble(result.summary['max_wind_speed']) * 3.6;
     final windLimit = limits.maxWindSpeed * 3.6;
-    final windColor = _levelColor(windSpeed, windLimit);
-    final windIcon = windColor == Colors.green ? Icons.air : Icons.warning;
+    final windColor = _levelColor(windSpeed, windLimit); // <= thresholding
+    final windIcon = windColor == Colors.green
+        ? Icons.check_circle_outline
+        : windColor == Colors.amber
+        ? Icons.error_outline
+        : Icons.dangerous_outlined;
     final windDesc = '${windSpeed.toStringAsFixed(0)} km/h gusts';
     final windSubDesc = 'Your limit: ${windLimit.toStringAsFixed(0)} km/h';
 
@@ -490,40 +490,15 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           const SizedBox(height: 16),
           _buildEnhancedWeatherGrid([
             _WeatherMetric(
-              tempIcon,
-              tempCaption,
-              tempDesc,
-              tempSubDesc,
-              tempColor,
-            ),
+                tempIcon, tempCaption, tempDesc, tempSubDesc, tempColor),
             _WeatherMetric(
-              windIcon,
-              'Wind Speed',
-              windDesc,
-              windSubDesc,
-              windColor,
-            ),
-            _WeatherMetric(
-              Icons.explore,
-              'Wind Direction',
-              windDirDesc,
-              windDirSubDesc,
-              windDirColor,
-            ),
-            _WeatherMetric(
-              Icons.umbrella,
-              'Precipitation',
-              rainDesc,
-              rainSubDesc,
-              rainColor,
-            ),
-            _WeatherMetric(
-              Icons.opacity,
-              'Humidity',
-              humidityDesc,
-              humiditySubDesc,
-              humidityColor,
-            ),
+                windIcon, 'Wind Speed', windDesc, windSubDesc, windColor),
+            _WeatherMetric(Icons.explore, 'Wind Direction', windDirDesc,
+                windDirSubDesc, windDirColor),
+            _WeatherMetric(Icons.umbrella, 'Precipitation', rainDesc,
+                rainSubDesc, rainColor),
+            _WeatherMetric(Icons.opacity, 'Humidity', humidityDesc,
+                humiditySubDesc, humidityColor),
           ], theme),
         ],
       ),
@@ -536,10 +511,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       ) {
     return Column(
       children: [
-        // First row - Temperature (full width)
         _buildEnhancedWeatherCard(metrics[0], theme, isFullWidth: true),
         const SizedBox(height: 12),
-        // Second row - Wind Speed and Wind Direction
         Row(
           children: [
             Expanded(child: _buildEnhancedWeatherCard(metrics[1], theme)),
@@ -565,7 +538,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           ],
         ),
         const SizedBox(height: 12),
-        // Third row - Rain and Humidity
         Row(
           children: [
             Expanded(child: _buildEnhancedWeatherCard(metrics[3], theme)),
@@ -577,27 +549,30 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     );
   }
 
+  // Neutral, thin border, colored dot + icon; equal card heights
   Widget _buildEnhancedWeatherCard(
       _WeatherMetric metric,
       ThemeData theme, {
         bool isFullWidth = false,
       }) {
+    final cs = theme.colorScheme;
+
     final card = Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
+      constraints: BoxConstraints(
+        minHeight: isFullWidth ? 100 : 132, // keep 4 metric cards same height
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            metric.color.withOpacity(0.1),
-            metric.color.withOpacity(0.05),
-          ],
-        ),
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: metric.color.withOpacity(0.3)),
+        border: Border.all(
+          color:
+          (metric.color == Colors.green ? cs.outlineVariant : metric.color)
+              .withOpacity(0.30),
+        ),
         boxShadow: [
           BoxShadow(
-            color: metric.color.withOpacity(0.1),
+            color: cs.outline.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -608,39 +583,48 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         children: [
           Row(
             children: [
+              // colored dot
               Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: metric.color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(metric.icon, color: metric.color, size: 20),
+                width: 10,
+                height: 10,
+                decoration:
+                BoxDecoration(color: metric.color, shape: BoxShape.circle),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              Icon(
+                metric.color == Colors.green
+                    ? Icons.check_circle_outline
+                    : metric.color == Colors.amber
+                    ? Icons.error_outline
+                    : Icons.dangerous_outlined,
+                color: metric.color,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   t(metric.caption),
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             t(metric.description),
             style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w600,
-              color: metric.color,
+              color: cs.onSurface,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             t(metric.subDescription),
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+              color: cs.onSurfaceVariant,
             ),
           ),
         ],
@@ -742,8 +726,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Route Start Time',
-                        style: theme.textTheme.bodyMedium),
+                    Text('Route Start Time', style: theme.textTheme.bodyMedium),
                     const SizedBox(height: 4),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.access_time),
@@ -768,8 +751,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Route End Time',
-                        style: theme.textTheme.bodyMedium),
+                    Text('Route End Time', style: theme.textTheme.bodyMedium),
                     const SizedBox(height: 4),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.access_time),
@@ -980,8 +962,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         commuteWindows: CommuteWindows(start: startStr, end: endStr),
       );
 
-      final feedbackGiven =
-      await _preferencesService.isEndFeedbackGivenToday();
+      final feedbackGiven = await _preferencesService.isEndFeedbackGivenToday();
       final String? oldThresholdId =
       await _preferencesService.getCurrentThresholdId();
       final String? newThresholdId =
@@ -1023,37 +1004,28 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     }
   }
 
+  // Neutral issues section with tinted border (History look)
   Widget _buildIssuesSection(
       CommuteAlertResult result,
       Color color,
       ThemeData theme,
       ) {
+    final cs = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color.withOpacity(0.15), color.withOpacity(0.05)],
-          ),
+          color: cs.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withOpacity(0.35)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(Icons.warning_amber, size: 18, color: color),
-                ),
+                Icon(Icons.warning_amber_rounded, size: 18, color: color),
                 const SizedBox(width: 8),
                 Text(
                   t('Weather Alerts'),
@@ -1085,7 +1057,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                       child: Text(
                         issue,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: color,
+                          color: cs.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1111,7 +1083,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             icon: const Icon(Icons.refresh, size: 18),
             label: Text(t('Refresh Forecast')),
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1351,10 +1324,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
               icon: const Icon(Icons.access_time),
               label: Text(t('Set Ride Time')),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1408,21 +1379,22 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     }
   }
 
+  // Threshold coloring: green (safe), yellow (equal/near limit), red (clearly over)
   Color _levelColor(double value, double limit) {
-    if (value > limit) return Colors.red;
-    if (value > limit * 0.7) return Colors.amber;
+    if (value > limit * 1.05) return Colors.red; // crossed by >5%
+    if (value >= limit * 0.98) return Colors.amber; // equal or just around
     return Colors.green;
   }
 
   String _riskLevel(double value, double limit) {
-    if (value > limit) return 'High';
-    if (value > limit * 0.7) return 'Moderate';
+    if (value > limit * 1.05) return 'High';
+    if (value >= limit * 0.98) return 'Moderate';
     return 'Low';
   }
 
   Color _riskColor(double value, double limit) {
-    if (value > limit) return Colors.red;
-    if (value > limit * 0.7) return Colors.amber;
+    if (value > limit * 1.05) return Colors.red;
+    if (value >= limit * 0.98) return Colors.amber;
     return Colors.green;
   }
 
