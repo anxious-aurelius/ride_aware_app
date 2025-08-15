@@ -9,6 +9,7 @@ from routes import (
     feedback,
     ride_history,
     wind,
+    weather_history,
 )
 from services.db import init_db
 from services.alert_service import schedule_existing_alerts
@@ -30,6 +31,7 @@ app.include_router(forecast.router)
 app.include_router(feedback.router)
 app.include_router(ride_history.router)
 app.include_router(wind.router)
+app.include_router(weather_history.router)
 
 
 @app.on_event("startup")

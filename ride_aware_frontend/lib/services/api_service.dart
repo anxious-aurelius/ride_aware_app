@@ -1,3 +1,4 @@
+// lib/services/api_service.dart
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,15 +12,15 @@ import 'device_id_service.dart';
 import 'preferences_service.dart';
 
 class ApiService {
-  // TODO: Replace with your actual API base URL if needed
+  // Replace with your actual API base URL if needed
   static const String baseUrl = 'http://10.0.2.2:8889';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
   final PreferencesService _preferencesService = PreferencesService();
 
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   // Thresholds
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   Future<String?> submitThresholds(UserPreferences preferences) async {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
@@ -121,9 +122,9 @@ class ApiService {
     }
   }
 
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   // Route
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   Future<void> submitRoute(RouteModel route) async {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
@@ -159,9 +160,9 @@ class ApiService {
     }
   }
 
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   // FCM
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   Future<void> submitFCMToken(String fcmToken) async {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
@@ -172,9 +173,13 @@ class ApiService {
       final body = {'device_id': deviceId, 'fcm_token': fcmToken};
 
       if (kDebugMode) {
+        final masked = {
+          ...body,
+          'fcm_token': '${fcmToken.substring(0, fcmToken.length.clamp(0, 20))}...',
+        };
         print('🚀 POST $baseUrl/fcm/register');
         print('   headers: ${await _getHeaders()}');
-        print('   body: ${jsonEncode(body..['fcm_token'] = '${fcmToken.substring(0, 20)}...')}');
+        print('   body: ${jsonEncode(masked)}'); // log masked copy only
       }
 
       final res = await http.post(
@@ -197,9 +202,9 @@ class ApiService {
     }
   }
 
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   // Feedback
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   Future<void> submitFeedback(Map<String, dynamic> feedback) async {
     try {
       final pendingId = await _preferencesService.getPendingFeedbackThresholdId();
@@ -228,9 +233,53 @@ class ApiService {
     }
   }
 
-  // ------------------------------
+  // ---------------------------------------------------------------------------
+  // Weather (optional live ping from device during ride)
+  // ---------------------------------------------------------------------------
+  Future<void> pingWeather({
+    required String thresholdId,
+    required double lat,
+    required double lon,
+    DateTime? when,
+  }) async {
+    final deviceId = await _deviceIdService.getParticipantIdHash();
+    if (deviceId == null) {
+      throw Exception('Participant ID not available.');
+    }
+
+    final body = <String, dynamic>{
+      'device_id': deviceId,
+      'threshold_id': thresholdId,
+      'lat': lat,
+      'lon': lon,
+      if (when != null) 'timestamp': when.toIso8601String(),
+    };
+
+    if (kDebugMode) {
+      print('🚀 POST $baseUrl/weatherHistory/ping');
+      print('   headers: ${await _getHeaders()}');
+      print('   body: ${jsonEncode(body)}');
+    }
+
+    final resp = await http.post(
+      Uri.parse('$baseUrl/weatherHistory/ping'),
+      headers: await _getHeaders(),
+      body: jsonEncode(body),
+    );
+
+    if (kDebugMode) {
+      print('📡 pingWeather -> ${resp.statusCode}');
+      if (resp.body.isNotEmpty) print('   body: ${resp.body}');
+    }
+
+    if (resp.statusCode != 200) {
+      throw Exception('Ping failed: ${resp.statusCode} ${resp.body}');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Ride history
-  // ------------------------------
+  // ---------------------------------------------------------------------------
 
   /// Typed version (maps into your RideHistoryEntry model).
   Future<List<RideHistoryEntry>> fetchRideHistory({int lastDays = 30}) async {
@@ -302,9 +351,9 @@ class ApiService {
     }
   }
 
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   // Ride save
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   Future<void> saveRideHistoryEntry(RideHistoryEntry entry) async {
     try {
       final res = await _postWithDeviceId('/rideHistory', entry.toJson());
@@ -323,9 +372,9 @@ class ApiService {
     }
   }
 
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   // Helpers
-  // ------------------------------
+  // ---------------------------------------------------------------------------
   Future<Map<String, String>> _getHeaders() async {
     final deviceId = await _deviceIdService.getParticipantIdHash();
     return {
