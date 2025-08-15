@@ -1,18 +1,23 @@
+# controllers/ride_history_controller.py
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_cls
 from fastapi import HTTPException
 from pymongo.errors import PyMongoError
 from bson import ObjectId
+from zoneinfo import ZoneInfo
+
 from models.ride_history import RideHistoryEntry
 from services.db import ride_history_collection
 from services.weather_history_service import (
     schedule_weather_collection,
     fetch_weather_history,
-    fetch_weather_history_window,  # <-- add
+    fetch_weather_history_window,
 )
+from utils.commute_window import parse_time
 
 logger = logging.getLogger(__name__)
+
 
 def _serialize(obj):
     if isinstance(obj, ObjectId):
@@ -22,6 +27,7 @@ def _serialize(obj):
     if isinstance(obj, dict):
         return {k: _serialize(v) for k, v in obj.items()}
     return obj
+
 
 async def create_history_entry(
     device_id: str,
@@ -43,20 +49,25 @@ async def create_history_entry(
         "threshold": threshold_snapshot,
         "feedback": None,
     }
+
+    # Insert once per threshold window (supports 2+ rides per day via distinct start/end)
     await ride_history_collection.update_one(
         {"threshold_id": threshold_id, "date": date, "start_time": start_time},
         {"$setOnInsert": doc},
         upsert=True,
     )
+
+    # Schedule live collection (or backfill if window is in the past)
     await schedule_weather_collection(
-        device_id,
-        threshold_id,
-        date,
-        start_time,
-        end_time,
+        device_id=device_id,
+        threshold_id=threshold_id,
+        date_str=date,
+        start_time=start_time,
+        end_time=end_time,
         timezone_str=threshold_snapshot.get("timezone"),
         interval_minutes=threshold_snapshot.get("weather_snapshot_interval_minutes", 10),
     )
+
 
 async def save_ride(entry: RideHistoryEntry) -> dict:
     try:
@@ -82,47 +93,60 @@ async def save_ride(entry: RideHistoryEntry) -> dict:
         logger.error("Database error saving ride history for %s: %s", entry.device_id, e)
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+
 async def save_ride_after_delay(entry: RideHistoryEntry, delay_seconds: int = 60) -> None:
     await asyncio.sleep(delay_seconds)
     await save_ride(entry)
 
+
 async def fetch_rides(device_id: str, last_days: int = 30):
+    """Return the last N days of rides for this device, with weather_history attached.
+
+    - Uses windowed fetch (start_dt..end_dt) when possible to avoid stray snapshots.
+    - Falls back to all snapshots for the threshold if windowed fetch isn’t available.
+    """
     since = datetime.now().date() - timedelta(days=last_days)
-    cursor = (
-        ride_history_collection
-        .find({"device_id": device_id, "date": {"$gte": since.isoformat()}})
-        .sort([("date", -1), ("start_time", -1)])
-    )
+    cursor = ride_history_collection.find(
+        {"device_id": device_id, "date": {"$gte": since.isoformat()}}
+    ).sort("date", -1)
+
     rides = []
     async for doc in cursor:
-        # Keep a copy of fields we’ll need for the fallback
-        threshold_id = doc.get("threshold_id")
-        date_str     = doc.get("date")
-        start_time   = doc.get("start_time")
-        end_time     = doc.get("end_time")
-        tz_name      = (doc.get("threshold") or {}).get("timezone")
-
-        # Primary: by threshold_id
-        history = []
-        if threshold_id:
-            history = await fetch_weather_history(threshold_id)
-
-        # Fallback: by time window (handles changed threshold_id)
-        if not history and date_str and start_time and end_time:
-            logger.debug(
-                "No snapshots for threshold %s; falling back to time window %s %s-%s",
-                threshold_id, date_str, start_time, end_time
-            )
-            history = await fetch_weather_history_window(
-                device_id=device_id,
-                date_str=date_str,
-                start_time=start_time,
-                end_time=end_time,
-                timezone_str=tz_name,
-            )
-
         doc.pop("_id", None)
+
+        # Build a timezone-aware window from the stored threshold snapshot
+        threshold_snap = (doc.get("threshold") or {})
+        tz_name = threshold_snap.get("timezone")
+        try:
+            tz = ZoneInfo(tz_name) if tz_name else datetime.now().astimezone().tzinfo
+        except Exception:
+            tz = datetime.now().astimezone().tzinfo
+
+        try:
+            ride_date = date_cls.fromisoformat(doc["date"])
+            start_dt = datetime.combine(ride_date, parse_time(doc["start_time"]), tzinfo=tz)
+            end_dt = datetime.combine(ride_date, parse_time(doc["end_time"]), tzinfo=tz)
+        except Exception as e:
+            logger.warning("Could not parse window for threshold %s: %s", doc.get("threshold_id"), e)
+            start_dt = end_dt = None
+
+        # Prefer windowed snapshots; fallback to all snapshots for this threshold
+        history = []
+        try:
+            if start_dt and end_dt and end_dt >= start_dt:
+                history = await fetch_weather_history_window(
+                    doc["threshold_id"], start_dt, end_dt
+                )
+            if not history:
+                history = await fetch_weather_history(doc["threshold_id"])
+        except Exception as e:
+            logger.warning("Weather history fetch failed for %s: %s", doc.get("threshold_id"), e)
+            history = []
+
         doc["weather_history"] = history
+
+        # Normalize types through the Pydantic model (handles date parsing)
         doc = _serialize(doc)
         rides.append(RideHistoryEntry(**doc).model_dump(mode="json"))
+
     return rides
