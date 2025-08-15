@@ -42,9 +42,9 @@ async def create_history_entry(
         "start_time": start_time,
         "end_time": end_time,
         "status": "pending",
+        "feedback_summary": None,
         "summary": {},
         "threshold": threshold_snapshot,
-        "feedback": None,
     }
     await ride_history_collection.update_one(
         {
@@ -76,7 +76,7 @@ async def save_ride(entry: RideHistoryEntry) -> dict:
                 "date": entry.date.isoformat(),
                 "start_time": entry.start_time,
             },
-            {"$set": doc},
+            {"$set": doc, "$unset": {"feedback": ""}},
             upsert=True,
         )
         logger.info(
@@ -108,6 +108,10 @@ async def fetch_rides(device_id: str, last_days: int = 30):
     )
     rides = []
     async for doc in cursor:
+
+        if not doc.get("feedback_summary") and doc.get("feedback"):
+            doc["feedback_summary"] = doc.get("feedback")
+
         threshold_id = str(doc.get("threshold_id"))
         date_str = doc.get("date")
         start_time = doc.get("start_time")

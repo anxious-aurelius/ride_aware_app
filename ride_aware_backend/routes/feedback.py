@@ -1,18 +1,12 @@
-import logging
-from fastapi import APIRouter
-from models.feedback import Feedback
-from controllers.feedback_controller import save_feedback
+from fastapi import APIRouter, Body
+from controllers.feedback_controller import record_feedback
 
-logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/feedback", tags=["Feedback"])
+router = APIRouter()
 
-
-@router.post("", include_in_schema=False)
-@router.post("/")
-async def submit_feedback(feedback: Feedback):
-    logger.info(
-        "Received feedback for device %s on threshold %s",
-        feedback.device_id,
-        feedback.threshold_id,
-    )
-    return await save_feedback(feedback)
+@router.post("/feedback")
+async def post_feedback(payload: dict = Body(...)):
+    """
+    Accepts the feedback payload (must include device_id, threshold_id).
+    Persists feedback and updates ride_history status/summary.
+    """
+    return await record_feedback(payload)

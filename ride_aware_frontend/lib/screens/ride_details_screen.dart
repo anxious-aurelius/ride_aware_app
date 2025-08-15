@@ -8,25 +8,28 @@ class RideDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final dateStr = (ride['date'] ?? '').toString();
-    final start = (ride['start_time'] ?? '').toString();
-    final end = (ride['end_time'] ?? '').toString();
-    final status = (ride['status'] ?? 'ok').toString();
-    final feedback = (ride['feedback'] ?? '').toString();
+    final dateStr  = (ride['date'] ?? '').toString();
+    final start    = (ride['start_time'] ?? '').toString();
+    final end      = (ride['end_time'] ?? '').toString();
+    final status   = (ride['status'] ?? 'ok').toString();
 
-    final summaryMap = _asStringMap(ride['summary']);
+    // Prefer consolidated feedback_summary; fall back to legacy feedback
+    final feedback = (ride['feedback_summary'] ?? ride['feedback'] ?? '').toString();
+
+    // ✅ summary is a MAP (if provided)
+    final summaryMap   = _asStringMap(ride['summary']);
     final thresholdMap = _asStringMap(ride['threshold']);
-    final weatherList = _asListOfMaps(ride['weather_history']);
+    final weatherList  = _asListOfMaps(ride['weather_history']);
 
     // threshold values (only these are shown)
-    final limits = _asStringMap(thresholdMap['weather_limits']);
-    final minTemp = limits['min_temperature'];
-    final maxTemp = limits['max_temperature'];
-    final windMax = limits['max_wind_speed'];
-    final headSens = limits['headwind_sensitivity'];
+    final limits    = _asStringMap(thresholdMap['weather_limits']);
+    final minTemp   = limits['min_temperature'];
+    final maxTemp   = limits['max_temperature'];
+    final windMax   = limits['max_wind_speed'];
+    final headSens  = limits['headwind_sensitivity'];
     final crossSens = limits['crosswind_sensitivity'];
-    final rainMax = limits['max_rain_intensity'];
-    final humidMax = limits['max_humidity'];
+    final rainMax   = limits['max_rain_intensity'];
+    final humidMax  = limits['max_humidity'];
 
     return DefaultTabController(
       length: 3,
@@ -78,7 +81,8 @@ class RideDetailsScreen extends StatelessWidget {
                     child: Card(
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: Column(
@@ -88,24 +92,37 @@ class RideDetailsScreen extends StatelessWidget {
                             _infoRow(context, 'End', end),
                             _infoRow(context, 'Status', status),
                             const SizedBox(height: 10),
+
+                            // Show MAP summary if present; otherwise fall back to feedback text; otherwise "No summary."
                             if (summaryMap.isNotEmpty)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Summary',
-                                      style: theme.textTheme.titleMedium),
+                                  Text('Summary', style: theme.textTheme.titleMedium),
                                   const SizedBox(height: 6),
-                                  ..._sorted(summaryMap)
-                                      .map((e) => _infoRow(context,
-                                      _labelize(e.key), _toText(e.value))),
+                                  ..._sorted(summaryMap).map(
+                                        (e) => _infoRow(
+                                      context,
+                                      _labelize(e.key),
+                                      _toText(e.value),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else if (feedback.isNotEmpty)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Summary', style: theme.textTheme.titleMedium),
+                                  const SizedBox(height: 6),
+                                  _infoRow(context, 'Feedback', feedback),
                                 ],
                               )
                             else
                               Text(
                                 'No summary.',
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color:
-                                  theme.colorScheme.onSurfaceVariant,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                           ],
@@ -120,34 +137,37 @@ class RideDetailsScreen extends StatelessWidget {
                     child: Card(
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: _kvTable(context, rows: [
                           _KV(
                             'Temperature range',
                             (_hasValue(minTemp) || _hasValue(maxTemp))
-                                ? '${_toText(minTemp)} – ${_toText(maxTemp)} °C'
+                                ? _fmtRange(minTemp, maxTemp, unit: '°C')
                                 : '—',
                           ),
                           _KV(
                             'Wind speed limit',
                             _hasValue(windMax)
-                                ? '${_toText(windMax)} m/s'
+                                ? _fmtUnit(windMax, unit: ' m/s')
                                 : '—',
                           ),
                           _KV(
                             'Wind direction limit',
                             (_hasValue(headSens) || _hasValue(crossSens))
-                                ? 'Head ${_toText(headSens)} • Cross ${_toText(crossSens)}'
+                                ? 'Head ${_fmtUnit(headSens)} • Cross ${_fmtUnit(crossSens)}'
                                 : '—',
                           ),
-                          _KV('Rain limit',
-                              _hasValue(rainMax) ? _toText(rainMax) : '—'),
+                          _KV(
+                            'Rain limit',
+                            _hasValue(rainMax) ? _fmtUnit(rainMax) : '—',
+                          ),
                           _KV(
                             'Humidity (max)',
                             _hasValue(humidMax)
-                                ? '${_toText(humidMax)} %'
+                                ? _fmtUnit(humidMax, unit: ' %')
                                 : '—',
                           ),
                         ]),
@@ -255,7 +275,8 @@ class RideDetailsScreen extends StatelessWidget {
   static Map<String, dynamic> _asStringMap(dynamic v) {
     if (v is Map) {
       return Map<String, dynamic>.from(
-          v.map((k, vv) => MapEntry(k.toString(), vv)));
+        v.map((k, vv) => MapEntry(k.toString(), vv)),
+      );
     }
     return <String, dynamic>{};
   }
@@ -311,12 +332,33 @@ class RideDetailsScreen extends StatelessWidget {
     return null;
   }
 
-  // format numbers nicely; keep non-numeric as-is
+  // Nicely format numbers; keep non-numeric as-is
   static String _fmtNumOrText(dynamic v, String suffix) {
     if (!_hasValue(v)) return '—';
     final n = double.tryParse(v.toString());
     if (n == null) return v.toString();
-    return '${n.toStringAsFixed(2)}$suffix';
+    return '${_trimZeros(n)}$suffix';
+  }
+
+  static String _fmtUnit(dynamic v, {String unit = ''}) {
+    if (!_hasValue(v)) return '—';
+    final n = double.tryParse(v.toString());
+    if (n == null) return v.toString();
+    return '${_trimZeros(n)}$unit';
+  }
+
+  static String _fmtRange(dynamic a, dynamic b, {String unit = ''}) {
+    final left  = _fmtUnit(a, unit: unit);
+    final right = _fmtUnit(b, unit: unit);
+    if (left == '—' && right == '—') return '—';
+    return '$left – $right';
+  }
+
+  static String _trimZeros(double n) {
+    final s = n.toStringAsFixed(2);
+    if (s.endsWith('00')) return n.toStringAsFixed(0);
+    if (s.endsWith('0'))  return n.toStringAsFixed(1);
+    return s;
   }
 
   List<MapEntry<String, dynamic>> _sorted(Map<String, dynamic> map) {
@@ -325,12 +367,13 @@ class RideDetailsScreen extends StatelessWidget {
     return entries;
   }
 
-  // aligned key/value row (used in overview)
+  // aligned key/value row (used in overview & detail sheets) — overflow-safe
   Widget _infoRow(BuildContext context, String k, String v) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Text(
@@ -341,10 +384,17 @@ class RideDetailsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            v,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          Flexible(
+            fit: FlexFit.tight,
+            child: Text(
+              v,
+              textAlign: TextAlign.right,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3, // tweak if you want fewer/more lines
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -355,16 +405,13 @@ class RideDetailsScreen extends StatelessWidget {
   // nice, aligned 2-column table for threshold values
   Widget _kvTable(BuildContext context, {required List<_KV> rows}) {
     final theme = Theme.of(context);
-    final labelStyle = theme.textTheme.bodyMedium
-        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final labelStyle =
+    theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final valueStyle =
     theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
 
     return Table(
-      columnWidths: const {
-        0: FlexColumnWidth(3),
-        1: FlexColumnWidth(2),
-      },
+      columnWidths: const { 0: FlexColumnWidth(3), 1: FlexColumnWidth(2) },
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       children: [
         for (final r in rows)
@@ -400,28 +447,34 @@ class RideDetailsScreen extends StatelessWidget {
         children: [
           Expanded(
             flex: 2,
-            child: Text('Time',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                )),
+            child: Text(
+              'Time',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
           Expanded(
             flex: 3,
             child: Center(
-              child: Text('Temp (°C)',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  )),
+              child: Text(
+                'Temp (°C)',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
           Expanded(
             flex: 3,
             child: Align(
               alignment: Alignment.centerRight,
-              child: Text('Wind (m/s)',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  )),
+              child: Text(
+                'Wind (m/s)',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 22), // space for chevron alignment
@@ -432,7 +485,7 @@ class RideDetailsScreen extends StatelessWidget {
 
   void _showWeatherDetails(BuildContext context, Map<String, dynamic> snap) {
     final ts = (snap['timestamp'] ?? '').toString();
-    final w = _asStringMap(snap['weather']);
+    final w  = _asStringMap(snap['weather']);
 
     const preferred = [
       'temp',
@@ -476,6 +529,7 @@ class RideDetailsScreen extends StatelessWidget {
                         return _infoRow(context, 'Time', _fmtIsoToHm(ts));
                       }
                       final k = keys[i - 1];
+                      // for detail view, show raw value but still avoid nulls
                       return _infoRow(context, _labelize(k), _toText(w[k]));
                     },
                   ),
@@ -505,16 +559,12 @@ class _StatusChip extends StatelessWidget {
     final theme = Theme.of(context);
     final Color color = () {
       switch (status) {
-        case 'alert':
-          return Colors.red;
-        case 'warning':
-          return Colors.orange;
-        case 'ok':
-          return Colors.green;
-        case 'pending':
-          return Colors.grey;
-        default:
-          return theme.colorScheme.primary;
+        case 'alert':     return Colors.red;
+        case 'warning':   return Colors.orange;
+        case 'ok':        return Colors.green;
+        case 'pending':   return Colors.grey;
+        case 'completed': return theme.colorScheme.primary;
+        default:          return theme.colorScheme.primary;
       }
     }();
     return Container(

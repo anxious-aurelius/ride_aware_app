@@ -216,7 +216,7 @@ class _RideCard extends StatelessWidget {
     final end =
     _HistoryScreenState._composeLocalDateTime(ride['date'], ride['end_time']);
     final status = (ride['status'] ?? '').toString();
-    final feedback = (ride['feedback'] ?? '').toString();
+    final feedback = (ride['feedback_summary'] ?? ride['feedback'] ?? '').toString();
     final threshold = (ride['threshold'] ?? {}) as Map<String, dynamic>;
     final weatherHistory = (ride['weather_history'] ?? []) as List<dynamic>;
 
