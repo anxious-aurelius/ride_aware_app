@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import '../models/user_preferences.dart';
 import '../models/route_model.dart';
 import '../models/ride_history_entry.dart';
@@ -10,20 +11,20 @@ import 'device_id_service.dart';
 import 'preferences_service.dart';
 
 class ApiService {
-  // TODO: Replace with actual API base URL
+  // TODO: Replace with your actual API base URL if needed
   static const String baseUrl = 'http://10.0.2.2:8889';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
   final PreferencesService _preferencesService = PreferencesService();
 
-  /// Submit user preferences/thresholds to the API
+  // ------------------------------
+  // Thresholds
+  // ------------------------------
   Future<String?> submitThresholds(UserPreferences preferences) async {
     try {
-      final String? deviceId = await _deviceIdService.getParticipantIdHash();
+      final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
-        throw Exception(
-          'Participant ID not available. Cannot submit thresholds.',
-        );
+        throw Exception('Participant ID not available. Cannot submit thresholds.');
       }
 
       if (!preferences.isValid) {
@@ -34,9 +35,9 @@ class ApiService {
       }
 
       final now = DateTime.now();
-      final scheduledStart =
-      pickScheduledStart(now, preferences.commuteWindows.startLocal);
-      final requestBody = {
+      final scheduledStart = pickScheduledStart(now, preferences.commuteWindows.startLocal);
+
+      final body = {
         'device_id': deviceId,
         'date': yyyymmdd(scheduledStart),
         'start_time': preferences.commuteWindows.startLocal.format24h(),
@@ -48,36 +49,30 @@ class ApiService {
         'office_location': preferences.officeLocation.toJson(),
       };
 
-      // Debug messages
       if (kDebugMode) {
-        print('🚀 API Request Debug:');
-        print('   Endpoint: $baseUrl/thresholds');
-        print('   Device ID: $deviceId');
-        print('   Request Body: ${jsonEncode(requestBody)}');
-        print('   Headers: ${await _getHeaders()}');
+        print('🚀 POST $baseUrl/thresholds');
+        print('   headers: ${await _getHeaders()}');
+        print('   body: ${jsonEncode(body)}');
       }
 
-      final response = await http.post(
+      final res = await http.post(
         Uri.parse('$baseUrl/thresholds'),
         headers: await _getHeaders(),
-        body: jsonEncode(requestBody),
+        body: jsonEncode(body),
       );
 
-      // Wrap response debug prints in kDebugMode
       if (kDebugMode) {
-        print('📡 API Response: ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          print('   Response Body: ${response.body}');
-        }
+        print('📡 thresholds -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Failed to submit thresholds: ${response.statusCode}');
+      if (res.statusCode != 200 && res.statusCode != 201) {
+        throw Exception('Failed to submit thresholds: ${res.statusCode}');
       }
 
       String? thresholdId;
-      if (response.body.isNotEmpty) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (res.body.isNotEmpty) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
         thresholdId = data['threshold_id'] as String?;
         if (thresholdId != null) {
           await _preferencesService.saveCurrentThresholdId(thresholdId);
@@ -85,318 +80,276 @@ class ApiService {
       }
       return thresholdId;
     } catch (e) {
-      // Wrap error debug prints in kDebugMode
-      if (kDebugMode) {
-        print('❌ API Error: $e');
-      }
-      // TODO: Add proper error logging
+      if (kDebugMode) print('❌ submitThresholds error: $e');
       throw Exception('Network error: $e');
     }
   }
 
-  /// Submit commute route data to the API
-  Future<void> submitRoute(RouteModel route) async {
-    try {
-      final String? deviceId = await _deviceIdService.getParticipantIdHash();
-      if (deviceId == null) {
-        throw Exception('Participant ID not available. Cannot submit route.');
-      }
-
-      // Ensure the route model has the correct device ID
-      final requestBody = route.copyWith(deviceId: deviceId).toJson();
-
-      if (kDebugMode) {
-        print('🚀 API Request Debug (Route):');
-        print('   Endpoint: $baseUrl/routes');
-        print('   Device ID: $deviceId');
-        print('   Request Body: ${jsonEncode(requestBody)}');
-        print('   Headers: ${await _getHeaders()}');
-      }
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/routes'),
-        headers: await _getHeaders(),
-        body: jsonEncode(requestBody),
-      );
-
-      if (kDebugMode) {
-        print('📡 API Response (Route): ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          print('   Response Body: ${response.body}');
-        }
-      }
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to submit route: ${response.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ API Error (Route): $e');
-      }
-      throw Exception('Network error: $e');
-    }
-  }
-
-  /// Submit FCM token to the API
-  Future<void> submitFCMToken(String fcmToken) async {
-    try {
-      final String? deviceId = await _deviceIdService.getParticipantIdHash();
-      if (deviceId == null) {
-        throw Exception(
-          'Participant ID not available. Cannot submit FCM token.',
-        );
-      }
-
-      // Create request body with device_id and fcm_token
-      final requestBody = {'device_id': deviceId, 'fcm_token': fcmToken};
-
-      if (kDebugMode) {
-        print('🚀 API Request Debug (FCM Token):');
-        print('   Endpoint: $baseUrl/fcm/register');
-        print('   Device ID: $deviceId');
-        print(
-          '   FCM Token: ${fcmToken.substring(0, 20)}...',
-        ); // Only show first 20 chars for security
-        print('   Request Body: ${jsonEncode(requestBody)}');
-      }
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/fcm/register'),
-        headers: await _getHeaders(),
-        body: jsonEncode(requestBody),
-      );
-
-      if (kDebugMode) {
-        print('📡 API Response (FCM Token): ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          print('   Response Body: ${response.body}');
-        }
-      }
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to submit FCM token: ${response.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ API Error (FCM Token): $e');
-      }
-      throw Exception('Network error: $e');
-    }
-  }
-
-  /// Get user preferences from the API
   Future<UserPreferences?> getUserPreferences() async {
     try {
-      final String? deviceId = await _deviceIdService.getParticipantIdHash();
+      final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
-        // If no participant ID, no preferences can be fetched
-        if (kDebugMode) {
-          print(
-            'ℹ️ GET Request Debug: No Participant ID available. Skipping preferences fetch.',
-          );
-        }
+        if (kDebugMode) print('ℹ️ No participant ID, skipping preferences fetch.');
         return null;
       }
 
       final url = Uri.parse('$baseUrl/thresholds/$deviceId');
 
       if (kDebugMode) {
-        print('🚀 GET Request Debug:');
-        print('   Endpoint: $url');
-        print('   Device ID: $deviceId');
-        print('   Headers: ${await _getHeaders()}');
+        print('🚀 GET $url');
+        print('   headers: ${await _getHeaders()}');
       }
 
-      final response = await http.get(url, headers: await _getHeaders());
+      final res = await http.get(url, headers: await _getHeaders());
 
       if (kDebugMode) {
-        print('📡 GET Response: ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          print('   Response Body: ${response.body}');
-        }
+        print('📡 getUserPreferences -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        return UserPreferences.fromJson(responseData);
-      } else if (response.statusCode == 404) {
-        // No preferences found for this device
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return UserPreferences.fromJson(data);
+      } else if (res.statusCode == 404) {
         return null;
       } else {
-        throw Exception('Failed to get preferences: ${response.statusCode}');
+        throw Exception('Failed to get preferences: ${res.statusCode}');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ GET Error: $e');
-      }
+      if (kDebugMode) print('❌ getUserPreferences error: $e');
       throw Exception('Network error: $e');
     }
   }
 
-  /// Submit ride feedback to the API
+  // ------------------------------
+  // Route
+  // ------------------------------
+  Future<void> submitRoute(RouteModel route) async {
+    try {
+      final deviceId = await _deviceIdService.getParticipantIdHash();
+      if (deviceId == null) {
+        throw Exception('Participant ID not available. Cannot submit route.');
+      }
+
+      final body = route.copyWith(deviceId: deviceId).toJson();
+
+      if (kDebugMode) {
+        print('🚀 POST $baseUrl/routes');
+        print('   headers: ${await _getHeaders()}');
+        print('   body: ${jsonEncode(body)}');
+      }
+
+      final res = await http.post(
+        Uri.parse('$baseUrl/routes'),
+        headers: await _getHeaders(),
+        body: jsonEncode(body),
+      );
+
+      if (kDebugMode) {
+        print('📡 submitRoute -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
+      }
+
+      if (res.statusCode != 200) {
+        throw Exception('Failed to submit route: ${res.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) print('❌ submitRoute error: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // ------------------------------
+  // FCM
+  // ------------------------------
+  Future<void> submitFCMToken(String fcmToken) async {
+    try {
+      final deviceId = await _deviceIdService.getParticipantIdHash();
+      if (deviceId == null) {
+        throw Exception('Participant ID not available. Cannot submit FCM token.');
+      }
+
+      final body = {'device_id': deviceId, 'fcm_token': fcmToken};
+
+      if (kDebugMode) {
+        print('🚀 POST $baseUrl/fcm/register');
+        print('   headers: ${await _getHeaders()}');
+        print('   body: ${jsonEncode(body..['fcm_token'] = '${fcmToken.substring(0, 20)}...')}');
+      }
+
+      final res = await http.post(
+        Uri.parse('$baseUrl/fcm/register'),
+        headers: await _getHeaders(),
+        body: jsonEncode(body),
+      );
+
+      if (kDebugMode) {
+        print('📡 submitFCMToken -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
+      }
+
+      if (res.statusCode != 200) {
+        throw Exception('Failed to submit FCM token: ${res.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) print('❌ submitFCMToken error: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // ------------------------------
+  // Feedback
+  // ------------------------------
   Future<void> submitFeedback(Map<String, dynamic> feedback) async {
     try {
-      final pendingId =
-      await _preferencesService.getPendingFeedbackThresholdId();
+      final pendingId = await _preferencesService.getPendingFeedbackThresholdId();
       final currentId = await _preferencesService.getCurrentThresholdId();
       final thresholdId = pendingId ?? currentId;
       if (thresholdId == null) {
         throw Exception('Threshold ID not available. Cannot submit feedback.');
       }
-      final response = await _postWithDeviceId('/feedback', {
+
+      final res = await _postWithDeviceId('/feedback', {
         ...feedback,
         'threshold_id': thresholdId,
       });
+
       if (kDebugMode) {
-        print('📡 Feedback Response: ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          print('   Response Body: ${response.body}');
-        }
+        print('📡 submitFeedback -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Failed to submit feedback: ${response.statusCode}');
+
+      if (res.statusCode != 200 && res.statusCode != 201) {
+        throw Exception('Failed to submit feedback: ${res.statusCode}');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Feedback submission error: $e');
-      }
+      if (kDebugMode) print('❌ submitFeedback error: $e');
       throw Exception('Network error: $e');
     }
   }
 
-  /// Save a ride history entry
-  Future<void> saveRideHistoryEntry(RideHistoryEntry entry) async {
-    try {
-      final response = await _postWithDeviceId('/rideHistory', entry.toJson());
-      if (kDebugMode) {
-        print('📡 Ride History Response: ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          print('   Response Body: ${response.body}');
-        }
-      }
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Failed to save ride history: ${response.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Ride history save error: $e');
-      }
-      throw Exception('Network error: $e');
-    }
-  }
+  // ------------------------------
+  // Ride history
+  // ------------------------------
 
-  /// Fetch ride history for the last [lastDays] days (typed model)
+  /// Typed version (maps into your RideHistoryEntry model).
   Future<List<RideHistoryEntry>> fetchRideHistory({int lastDays = 30}) async {
     try {
-      final String? deviceId = await _deviceIdService.getParticipantIdHash();
+      final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
         throw Exception('Participant ID not available. Cannot fetch history.');
       }
+
       final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
         'device_id': deviceId,
         'lastDays': lastDays.toString(),
       });
-      final response = await http.get(uri, headers: await _getHeaders());
+
+      final res = await http.get(uri, headers: await _getHeaders());
+
       if (kDebugMode) {
-        print('📡 Ride History Fetch: ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          print('   Response Body: ${response.body}');
-        }
+        print('📡 fetchRideHistory -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
-      if (response.statusCode != 200) {
-        throw Exception('Failed to fetch ride history: ${response.statusCode}');
+
+      if (res.statusCode != 200) {
+        throw Exception('Failed to fetch ride history: ${res.statusCode}');
       }
-      final data = jsonDecode(response.body) as List;
+
+      final data = jsonDecode(res.body) as List;
       return data
           .map((e) => RideHistoryEntry.fromJson(e as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Ride history fetch error: $e');
+      if (kDebugMode) print('❌ fetchRideHistory error: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Raw version (returns exact payload from backend, including weather_history).
+  Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({int lastDays = 30}) async {
+    try {
+      final deviceId = await _deviceIdService.getParticipantIdHash();
+      if (deviceId == null) {
+        throw Exception('Participant ID not available. Cannot fetch history.');
       }
+
+      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
+        'device_id': deviceId,
+        'lastDays': lastDays.toString(),
+      });
+
+      final res = await http.get(uri, headers: await _getHeaders());
+
+      if (kDebugMode) {
+        print('📡 Ride History Raw Fetch: ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   Body: ${res.body}');
+      }
+
+      if (res.statusCode != 200) {
+        throw Exception('Failed to load ride history: ${res.statusCode} ${res.body}');
+      }
+
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return const [];
+
+      return decoded.map<Map<String, dynamic>>((e) {
+        return Map<String, dynamic>.from(e as Map);
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) print('❌ fetchRideHistoryRaw error: $e');
+      rethrow;
+    }
+  }
+
+  // ------------------------------
+  // Ride save
+  // ------------------------------
+  Future<void> saveRideHistoryEntry(RideHistoryEntry entry) async {
+    try {
+      final res = await _postWithDeviceId('/rideHistory', entry.toJson());
+
+      if (kDebugMode) {
+        print('📡 saveRideHistoryEntry -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
+      }
+
+      if (res.statusCode != 200 && res.statusCode != 201) {
+        throw Exception('Failed to save ride history: ${res.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) print('❌ saveRideHistoryEntry error: $e');
       throw Exception('Network error: $e');
     }
   }
 
   // ------------------------------
-  // NEW: raw ride history with full payload (incl. weather_history)
+  // Helpers
   // ------------------------------
-  Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({int lastDays = 30}) async {
-    final String? deviceId = await _deviceIdService.getParticipantIdHash();
-    if (deviceId == null) {
-      throw Exception('Participant ID not available. Cannot fetch history.');
-    }
-
-    // Matches your existing endpoint and query params.
-    final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
-      'device_id': deviceId,
-      'lastDays': lastDays.toString(),
-    });
-
-    final resp = await http.get(uri, headers: await _getHeaders());
-
-    if (kDebugMode) {
-      print('📡 Ride History Raw Fetch: ${resp.statusCode}');
-      if (resp.body.isNotEmpty) {
-        print('   Body: ${resp.body}');
-      }
-    }
-
-    if (resp.statusCode != 200) {
-      throw Exception('Failed to load ride history: ${resp.statusCode} ${resp.body}');
-    }
-
-    final decoded = jsonDecode(resp.body);
-    if (decoded is! List) return const [];
-
-    return decoded.map<Map<String, dynamic>>((e) {
-      // Defensive cast to Map<String, dynamic>
-      return Map<String, dynamic>.from(e as Map);
-    }).toList();
-  }
-  // ------------------------------
-
-  /// Get standard headers for API requests
   Future<Map<String, String>> _getHeaders() async {
-    final String? deviceId = await _deviceIdService.getParticipantIdHash();
-
+    final deviceId = await _deviceIdService.getParticipantIdHash();
     return {
       'Content-Type': 'application/json',
       'X-Device-Id': deviceId ?? 'unknown',
     };
   }
 
-  /// Helper method for GET requests with device ID
   Future<http.Response> _getWithDeviceId(String endpoint) async {
-    final String? deviceId = await _deviceIdService.getParticipantIdHash();
+    final deviceId = await _deviceIdService.getParticipantIdHash();
     if (deviceId == null) {
-      throw Exception(
-        'Participant ID not available. Cannot perform GET request.',
-      );
+      throw Exception('Participant ID not available. Cannot perform GET request.');
     }
-
-    final uri = Uri.parse(
-      '$baseUrl$endpoint',
-    ).replace(queryParameters: {'device_id': deviceId});
-
-    return await http.get(uri, headers: await _getHeaders());
+    final uri = Uri.parse('$baseUrl$endpoint').replace(queryParameters: {'device_id': deviceId});
+    return http.get(uri, headers: await _getHeaders());
   }
 
-  /// Helper method for POST requests with device ID
-  Future<http.Response> _postWithDeviceId(
-      String endpoint,
-      Map<String, dynamic> body,
-      ) async {
-    final String? deviceId = await _deviceIdService.getParticipantIdHash();
+  Future<http.Response> _postWithDeviceId(String endpoint, Map<String, dynamic> body) async {
+    final deviceId = await _deviceIdService.getParticipantIdHash();
     if (deviceId == null) {
-      throw Exception(
-        'Participant ID not available. Cannot perform POST request.',
-      );
+      throw Exception('Participant ID not available. Cannot perform POST request.');
     }
-
     final requestBody = {...body, 'device_id': deviceId};
-
-    return await http.post(
+    return http.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: await _getHeaders(),
       body: jsonEncode(requestBody),

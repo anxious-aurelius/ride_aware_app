@@ -1,5 +1,5 @@
-import logging
-from fastapi import APIRouter, Request
+# routes/thresholds.py
+from fastapi import APIRouter, HTTPException
 from models.thresholds import Thresholds
 from controllers.thresholds_controller import (
     upsert_threshold,
@@ -7,40 +7,24 @@ from controllers.thresholds_controller import (
     get_current_threshold,
 )
 
-
-logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/thresholds", tags=["Thresholds"])
+router = APIRouter()
 
 
-@router.post("", include_in_schema=False)
-@router.post("/")
-async def set_threshold(threshold: Thresholds, request: Request):
-    body = await request.json()
-    logger.debug("Incoming payload: %s", body)
-    logger.info(
-        "Setting thresholds for device %s on %s from %s to %s",
-        threshold.device_id,
-        threshold.date,
-        threshold.start_time,
-        threshold.end_time,
-    )
-    return await upsert_threshold(threshold)
+@router.post("/thresholds")
+async def post_thresholds(payload: Thresholds):
+    try:
+        return await upsert_threshold(payload)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{device_id}/{date}/{start_time}/{end_time}")
-async def fetch_threshold(device_id: str, date: str, start_time: str, end_time: str):
-    logger.info(
-        "Fetching thresholds for device %s on %s from %s to %s",
-        device_id,
-        date,
-        start_time,
-        end_time,
-    )
-    return await get_thresholds(device_id, date, start_time, end_time)
-
-
-@router.get("/{device_id}/current")
-async def fetch_current_threshold(device_id: str):
-    logger.info("Fetching current thresholds for device %s", device_id)
+@router.get("/thresholds/{device_id}")
+async def get_current(device_id: str):
     return await get_current_threshold(device_id)
 
+
+@router.get("/thresholds/{device_id}/{date}/{start_time}/{end_time}")
+async def get_exact(device_id: str, date: str, start_time: str, end_time: str):
+    return await get_thresholds(device_id, date, start_time, end_time)
