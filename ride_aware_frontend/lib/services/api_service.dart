@@ -1,18 +1,19 @@
 // lib/services/api_service.dart
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../models/user_preferences.dart';
-import '../models/route_model.dart';
-import '../models/ride_history_entry.dart';
 import '../helpers/schedule.dart';
+import '../models/ride_history_entry.dart';
+import '../models/route_model.dart';
+import '../models/user_preferences.dart';
 import 'device_id_service.dart';
 import 'preferences_service.dart';
 
 class ApiService {
-  // Replace with your actual API base URL if needed
+  /// Your backend base URL (Android emulator uses 10.0.2.2 to hit host machine)
   static const String baseUrl = 'http://10.0.2.2:8889';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
@@ -174,12 +175,12 @@ class ApiService {
 
       if (kDebugMode) {
         final masked = {
-          ...body,
-          'fcm_token': '${fcmToken.substring(0, fcmToken.length.clamp(0, 20))}...',
+          'device_id': deviceId,
+          'fcm_token': '${fcmToken.substring(0, 20)}...'
         };
         print('🚀 POST $baseUrl/fcm/register');
         print('   headers: ${await _getHeaders()}');
-        print('   body: ${jsonEncode(masked)}'); // log masked copy only
+        print('   body: ${jsonEncode(masked)}');
       }
 
       final res = await http.post(
@@ -234,7 +235,98 @@ class ApiService {
   }
 
   // ---------------------------------------------------------------------------
-  // Weather (optional live ping from device during ride)
+  // Ride history (typed model)
+  // ---------------------------------------------------------------------------
+  Future<List<RideHistoryEntry>> fetchRideHistory({int lastDays = 30}) async {
+    try {
+      final deviceId = await _deviceIdService.getParticipantIdHash();
+      if (deviceId == null) {
+        throw Exception('Participant ID not available. Cannot fetch history.');
+      }
+
+      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
+        'device_id': deviceId,
+        'lastDays': lastDays.toString(),
+      });
+
+      final res = await http.get(uri, headers: await _getHeaders());
+
+      if (kDebugMode) {
+        print('📡 fetchRideHistory -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
+      }
+
+      if (res.statusCode != 200) {
+        throw Exception('Failed to fetch ride history: ${res.statusCode}');
+      }
+
+      final data = jsonDecode(res.body) as List;
+      return data.map((e) => RideHistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      if (kDebugMode) print('❌ fetchRideHistory error: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ride history (raw dicts — includes weather_history as-is)
+  // ---------------------------------------------------------------------------
+  Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({int lastDays = 30}) async {
+    try {
+      final deviceId = await _deviceIdService.getParticipantIdHash();
+      if (deviceId == null) {
+        throw Exception('Participant ID not available. Cannot fetch history.');
+      }
+
+      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
+        'device_id': deviceId,
+        'lastDays': lastDays.toString(),
+      });
+
+      final res = await http.get(uri, headers: await _getHeaders());
+
+      if (kDebugMode) {
+        print('📡 Ride History Raw Fetch: ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   Body: ${res.body}');
+      }
+
+      if (res.statusCode != 200) {
+        throw Exception('Failed to load ride history: ${res.statusCode} ${res.body}');
+      }
+
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return const [];
+
+      return decoded.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
+    } catch (e) {
+      if (kDebugMode) print('❌ fetchRideHistoryRaw error: $e');
+      rethrow;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Save ride
+  // ---------------------------------------------------------------------------
+  Future<void> saveRideHistoryEntry(RideHistoryEntry entry) async {
+    try {
+      final res = await _postWithDeviceId('/rideHistory', entry.toJson());
+
+      if (kDebugMode) {
+        print('📡 saveRideHistoryEntry -> ${res.statusCode}');
+        if (res.body.isNotEmpty) print('   body: ${res.body}');
+      }
+
+      if (res.statusCode != 200 && res.statusCode != 201) {
+        throw Exception('Failed to save ride history: ${res.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) print('❌ saveRideHistoryEntry error: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Weather pings (optional, for live snapshots during a ride)
   // ---------------------------------------------------------------------------
   Future<void> pingWeather({
     required String thresholdId,
@@ -274,101 +366,6 @@ class ApiService {
 
     if (resp.statusCode != 200) {
       throw Exception('Ping failed: ${resp.statusCode} ${resp.body}');
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Ride history
-  // ---------------------------------------------------------------------------
-
-  /// Typed version (maps into your RideHistoryEntry model).
-  Future<List<RideHistoryEntry>> fetchRideHistory({int lastDays = 30}) async {
-    try {
-      final deviceId = await _deviceIdService.getParticipantIdHash();
-      if (deviceId == null) {
-        throw Exception('Participant ID not available. Cannot fetch history.');
-      }
-
-      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
-        'device_id': deviceId,
-        'lastDays': lastDays.toString(),
-      });
-
-      final res = await http.get(uri, headers: await _getHeaders());
-
-      if (kDebugMode) {
-        print('📡 fetchRideHistory -> ${res.statusCode}');
-        if (res.body.isNotEmpty) print('   body: ${res.body}');
-      }
-
-      if (res.statusCode != 200) {
-        throw Exception('Failed to fetch ride history: ${res.statusCode}');
-      }
-
-      final data = jsonDecode(res.body) as List;
-      return data
-          .map((e) => RideHistoryEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      if (kDebugMode) print('❌ fetchRideHistory error: $e');
-      throw Exception('Network error: $e');
-    }
-  }
-
-  /// Raw version (returns exact payload from backend, including weather_history).
-  Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({int lastDays = 30}) async {
-    try {
-      final deviceId = await _deviceIdService.getParticipantIdHash();
-      if (deviceId == null) {
-        throw Exception('Participant ID not available. Cannot fetch history.');
-      }
-
-      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
-        'device_id': deviceId,
-        'lastDays': lastDays.toString(),
-      });
-
-      final res = await http.get(uri, headers: await _getHeaders());
-
-      if (kDebugMode) {
-        print('📡 Ride History Raw Fetch: ${res.statusCode}');
-        if (res.body.isNotEmpty) print('   Body: ${res.body}');
-      }
-
-      if (res.statusCode != 200) {
-        throw Exception('Failed to load ride history: ${res.statusCode} ${res.body}');
-      }
-
-      final decoded = jsonDecode(res.body);
-      if (decoded is! List) return const [];
-
-      return decoded.map<Map<String, dynamic>>((e) {
-        return Map<String, dynamic>.from(e as Map);
-      }).toList();
-    } catch (e) {
-      if (kDebugMode) print('❌ fetchRideHistoryRaw error: $e');
-      rethrow;
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Ride save
-  // ---------------------------------------------------------------------------
-  Future<void> saveRideHistoryEntry(RideHistoryEntry entry) async {
-    try {
-      final res = await _postWithDeviceId('/rideHistory', entry.toJson());
-
-      if (kDebugMode) {
-        print('📡 saveRideHistoryEntry -> ${res.statusCode}');
-        if (res.body.isNotEmpty) print('   body: ${res.body}');
-      }
-
-      if (res.statusCode != 200 && res.statusCode != 201) {
-        throw Exception('Failed to save ride history: ${res.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) print('❌ saveRideHistoryEntry error: $e');
-      throw Exception('Network error: $e');
     }
   }
 
