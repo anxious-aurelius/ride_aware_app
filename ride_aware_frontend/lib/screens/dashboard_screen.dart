@@ -1,4 +1,3 @@
-// lib/screens/dashboard_screen.dart
 import 'dart:async';
 
 import 'package:active_commuter_support/app_initializer.dart';
@@ -10,11 +9,10 @@ import 'package:active_commuter_support/widgets/ride_feedback_card.dart';
 import 'package:active_commuter_support/screens/post_ride_feedback_screen.dart';
 import 'package:active_commuter_support/screens/history_screen.dart';
 import 'package:active_commuter_support/services/api_service.dart';
-import 'package:active_commuter_support/models/ride_history_entry.dart'; // WeatherPoint + RideHistoryEntry
+import 'package:active_commuter_support/models/ride_history_entry.dart';
 import 'package:active_commuter_support/models/user_preferences.dart';
 import 'package:flutter/material.dart';
 
-// Keep RideSlot local (no conflict with your models)
 class RideSlot {
   final String rideId;
   final DateTime start;
@@ -40,18 +38,16 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with WidgetsBindingObserver {
-  // --- Services ---
   final NotificationService _notificationService = NotificationService();
   final PreferencesService _prefsService = PreferencesService();
   final ApiService _apiService = ApiService();
 
-  // --- State ---
   UserPreferences? _prefs;
   String _feedbackSummary = 'You did a great job!';
   bool _endFeedbackGiven = false;
   DateTime _lastReset = DateTime.now();
-  RideSlot? _pendingRide; // last completed, no feedback yet
-  RideSlot? _nextRide; // immediate next route after the pending one
+  RideSlot? _pendingRide;
+  RideSlot? _nextRide;
   Timer? _tick;
   Timer? _feedbackTicker;
   bool _showFeedback = false;
@@ -60,10 +56,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
   GlobalKey<UpcomingCommuteAlertState>();
 
-  // --- Bottom nav ---
-  int _currentTab = 0; // 0: Weather (dashboard), 1: History, 2: Preferences
+  int _currentTab = 0;
 
-  // --- UI helpers ---
   static const _maxContentWidth = 720.0;
 
   @override
@@ -76,7 +70,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       _alertKey.currentState?.refreshForecast();
     });
 
-    // Periodic heartbeat:
     _tick = Timer.periodic(const Duration(seconds: 20), (_) async {
       await _maybeAutoEndRide();
       _alertKey.currentState?.maybePreRideAlertCheck();
@@ -99,8 +92,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
-  // IMPORTANT: also consider "feedback given today" even when there is no pendingId,
-  // so the End Ride FAB stays hidden after refresh.
   Future<void> _refreshFeedbackFlag() async {
     final pendingId = await _prefsService.getPendingFeedbackThresholdId();
     final submittedForPending =
@@ -126,13 +117,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   Future<void> _maybeAutoEndRide() async {
     if (_prefs == null) return;
 
-    // robust guards (persisted + in-memory)
     if (_showFeedback) return;
     if (_endFeedbackGiven) return;
     final alreadyPendingId = await _prefsService.getPendingFeedbackThresholdId();
-    if (alreadyPendingId != null) return; // already created; don't redo
+    if (alreadyPendingId != null) return;
 
-    // extra guard in case memory flag got stale
     final endGivenToday = await _prefsService.isEndFeedbackGivenToday();
     if (endGivenToday) return;
 
@@ -141,7 +130,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     var rideEndToday =
     DateTime(now.year, now.month, now.day, endLocal.hour, endLocal.minute);
 
-    // If end is before start in prefs (overnight window), move end to next day.
     final startLocal = _prefs!.commuteWindows.startLocal;
     final rideStartToday =
     DateTime(now.year, now.month, now.day, startLocal.hour, startLocal.minute);
@@ -153,7 +141,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       final thresholdId = await _prefsService.getCurrentThresholdId();
       final usedId = thresholdId ?? 'auto-${rideEndToday.toIso8601String()}';
 
-      // create pending exactly once
       await _prefsService.setPendingFeedback(DateTime.now());
       await _prefsService.setPendingFeedbackThresholdId(usedId);
 
@@ -180,7 +167,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     DateTime(start.year, start.month, start.day, endLocal.hour, endLocal.minute);
 
     if (start.isBefore(endToday)) {
-      // Morning ride – next is the evening commute
       return RideSlot(
         rideId: '',
         start: endToday,
@@ -190,7 +176,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       );
     }
 
-    // Evening ride – next ride is tomorrow morning
     final nextDay = start.add(const Duration(days: 1));
     final nextMorning = DateTime(
         nextDay.year, nextDay.month, nextDay.day, startLocal.hour, startLocal.minute);
@@ -228,7 +213,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _manualEndRide() async {
-    // avoid duplicates
+
     final alreadyPendingId = await _prefsService.getPendingFeedbackThresholdId();
     if (alreadyPendingId != null) return;
 
@@ -240,7 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _nextRide = _determineNextRide(DateTime.now());
     if (!mounted) return;
     setState(() {
-      _showFeedback = true; // show the feedback card
+      _showFeedback = true;
       _endFeedbackGiven = false;
       _pendingFeedbackThresholdId = thresholdId;
     });
@@ -297,7 +282,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         } else if (_pendingRide != null) {
           _prefsService.setFeedbackSubmitted(_pendingRide!.rideId, true);
         }
-        _showFeedback = false; // feedback done -> hide card (and FAB stays hidden)
+        _showFeedback = false;
         _pendingFeedbackThresholdId = null;
       });
       await _prefsService.setEndFeedbackGiven(DateTime.now());
@@ -330,11 +315,9 @@ class _DashboardScreenState extends State<DashboardScreen>
           color: cs.onSurface,
         ),
       ),
-      // Removed top-right actions (Settings + End Ride) as requested.
     );
   }
 
-  // Small, theme-matching brand mark (no external asset)
   Widget _brandMark(ColorScheme cs) {
     return Padding(
       padding: const EdgeInsets.only(left: 12),
@@ -446,7 +429,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  /// Do not wrap UpcomingCommuteAlert inside a big card; just a local theme.
   Widget _upcomingCommuteBlock() {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -507,7 +489,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               Map<String, dynamic> threshold,
               List<Map<String, dynamic>> weatherHistory,
               ) async {
-            // --- IDEMPOTENT GUARDS ---
             final alreadySubmitted =
                 await _prefsService.getFeedbackSubmitted(rideId) ?? false;
             if (alreadySubmitted) return;
@@ -515,9 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             await _prefsService.getPendingFeedbackThresholdId();
             if (existingPending == rideId) return;
             if (existingPending != null && existingPending != rideId) return;
-            // --------------------------
 
-            // Explicit generic to ensure List<WeatherPoint> from models
             final weatherPoints = weatherHistory
                 .map<WeatherPoint>((e) => WeatherPoint.fromJson(e))
                 .toList();
@@ -560,7 +539,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // --- Bottom Navigation ---
   Widget _buildBottomNav(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
@@ -597,7 +575,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             NavigationDestination(icon: Icon(Icons.tune), label: 'Preferences'),
           ],
           onDestinationSelected: (index) async {
-            // NEW: Weather button shows the 6h forecast dialog.
             if (index == 0) {
               _alertKey.currentState?.openHourlyForecast();
               return;
@@ -622,8 +599,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // --- Ride window / FAB visibility helpers ---
-
   bool _isDuringRideWindow() {
     if (_prefs == null) return false;
     final now = DateTime.now();
@@ -635,11 +610,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     DateTime(now.year, now.month, now.day, startTod.hour, startTod.minute);
     var end = DateTime(now.year, now.month, now.day, endTod.hour, endTod.minute);
 
-    // Handle overnight windows (end <= start)
     if (!end.isAfter(start)) {
-      // end next day
       if (now.isBefore(start)) {
-        // before start -> treat window from yesterday's start to today's end
         start = start.subtract(const Duration(days: 1));
       } else {
         end = end.add(const Duration(days: 1));
@@ -650,7 +622,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   bool get _shouldShowRideStopFab {
-    // show only during ride, and only if no feedback is pending/visible/already given
     if (!_isDuringRideWindow()) return false;
     if (_showFeedback) return false;
     if (_endFeedbackGiven) return false;
@@ -681,7 +652,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               SliverToBoxAdapter(child: _centered(child: _welcomeHeader(context))),
               const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
-              // Post-ride feedback card
               SliverToBoxAdapter(
                 child: _centered(
                   child: AnimatedSwitcher(
@@ -710,7 +680,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ),
 
-      // New placement for End Ride: FAB appears only during the ride window.
       floatingActionButton: _shouldShowRideStopFab
           ? FloatingActionButton.extended(
         heroTag: 'endRideFab',

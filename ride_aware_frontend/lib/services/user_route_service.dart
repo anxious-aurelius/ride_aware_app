@@ -18,7 +18,7 @@ class UserRouteService {
     final response = await http.get(uri, headers: await _getHeaders());
 
     if (kDebugMode) {
-      print('📡 Route Fetch Response: ${response.statusCode}');
+      print(' Route Fetch Response: ${response.statusCode}');
     }
 
     if (response.statusCode == 200) {

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'standard_card.dart';
 
-/// Displays feedback status for the most recent ride.
-///
-/// When [feedbackGiven] is false, tapping the card triggers [onTap]
-/// to open the feedback form. A close button is also shown allowing
-/// the user to dismiss the feedback prompt by invoking [onClose].
 class RideFeedbackCard extends StatelessWidget {
   final bool feedbackGiven;
   final VoidCallback? onTap;

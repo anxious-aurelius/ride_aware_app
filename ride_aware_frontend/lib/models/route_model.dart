@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart'; // For listEquals
+import 'package:flutter/foundation.dart';
 import 'geo_point.dart';
 
 class RouteModel {
@@ -36,7 +36,6 @@ class RouteModel {
     );
   }
 
-  /// Creates a copy of this RouteModel with the given fields replaced with the new values.
   RouteModel copyWith({
     String? deviceId,
     String? routeName,
@@ -64,7 +63,7 @@ class RouteModel {
         listEquals(
           other.routePoints,
           routePoints,
-        ); // Using listEquals for list comparison
+        );
   }
 
   @override

@@ -123,7 +123,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     _routeEndTime = preferences.commuteWindows.endLocal;
 
     if (kDebugMode) {
-      print('🕐 Time Debug:');
+      print('Time Debug:');
       print('   Stored Route Start: ${preferences.commuteWindows.start}');
       print('   Displayed Start Local: ${_formatTimeOfDay(_routeStartTime)}');
       print('   Stored Route End: ${preferences.commuteWindows.end}');
@@ -139,7 +139,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     final endStr = CommuteWindows.localTimeOfDayToString(_routeEndTime);
 
     if (kDebugMode) {
-      print('🕐 Time for Storage:');
+      print('Time for Storage:');
       print('   Start: $startStr');
       print('   End: $endStr');
     }
@@ -176,7 +176,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (picked != null && picked != _routeStartTime) {
       setState(() => _routeStartTime = picked);
       if (kDebugMode) {
-        print('🕐 Route Start Time Selected: ${_formatTimeOfDay(picked)}');
+        print('Route Start Time Selected: ${_formatTimeOfDay(picked)}');
       }
     }
   }
@@ -190,7 +190,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (picked != null && picked != _routeEndTime) {
       setState(() => _routeEndTime = picked);
       if (kDebugMode) {
-        print('🕐 Route End Time Selected: ${_formatTimeOfDay(picked)}');
+        print('Route End Time Selected: ${_formatTimeOfDay(picked)}');
       }
     }
   }
@@ -300,7 +300,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       final routeGeoPoints = await _routingService.fetchRoutePoints(startPoint, endPoint);
 
       if (kDebugMode) {
-        print('🗺️ Route Points Debug:');
+        print('Route Points Debug:');
         print('   Total points: ${routeGeoPoints.length}');
         print('   Start point: ${startPoint.latitude}, ${startPoint.longitude}');
         print('   End point: ${endPoint.latitude}, ${endPoint.longitude}');
@@ -415,7 +415,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       );
 
       if (kDebugMode) {
-        print('📤 Route Submission Debug:');
+        print('   Route Submission Debug:');
         print('   Participant ID Hash (as Device ID): $participantIdHash');
         print('   Route Name: ${routeModel.routeName}');
         print('   Start: ${routeModel.startLocation.latitude}, ${routeModel.startLocation.longitude}');
@@ -777,7 +777,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           _sectionHeader('Daily commute schedule', icon: Icons.schedule),
           const SizedBox(height: 8),
           Text(
-            'Set your route start and end times for personalized weather alerts.',
+            'Set your route start and end times for personalised weather alerts.',
             style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 4),
@@ -865,7 +865,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           _outlinedButton(
             onPressed: _isGettingLocation ? null : _useDeviceLocationForHome,
             icon: _isGettingLocation ? Icons.hourglass_top : Icons.my_location,
-            label: _isGettingLocation ? 'Getting home location…' : 'Use current location (Home)',
+            label: _isGettingLocation ? 'Getting home location…': 'Use current location (Home)',
             showSpinner: _isGettingLocation,
           ),
           const SizedBox(height: 20),

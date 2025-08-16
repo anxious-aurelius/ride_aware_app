@@ -10,12 +10,10 @@ class CommuteStatusApiService {
   factory CommuteStatusApiService() => _instance;
   CommuteStatusApiService._internal();
 
-  // TODO: Replace with actual API base URL
   static const String baseUrl = 'http://81.17.60.64:8888';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
 
-  /// Get commute status from API
   Future<CommuteStatusResponse> getCommuteStatus() async {
     try {
       final String? deviceId = await _deviceIdService.getParticipantIdHash();
@@ -28,7 +26,7 @@ class CommuteStatusApiService {
       final url = Uri.parse('$baseUrl/commute/status/$deviceId');
 
       if (kDebugMode) {
-        print('🚀 Commute Status API Request:');
+        print('   Commute Status API Request:');
         print('   Endpoint: $url');
         print('   Device ID: $deviceId');
       }
@@ -36,7 +34,7 @@ class CommuteStatusApiService {
       final response = await http.get(url, headers: await _getHeaders());
 
       if (kDebugMode) {
-        print('📡 Commute Status API Response: ${response.statusCode}');
+        print(' Commute Status API Response: ${response.statusCode}');
         if (response.body.isNotEmpty) {
           print('   Response Body: ${response.body}');
         }
@@ -52,13 +50,13 @@ class CommuteStatusApiService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Commute Status API Error: $e');
+        print(' Commute Status API Error: $e');
       }
       rethrow;
     }
   }
 
-  /// Get standard headers for API requests
+
   Future<Map<String, String>> _getHeaders() async {
     final String? deviceId = await _deviceIdService.getParticipantIdHash();
 

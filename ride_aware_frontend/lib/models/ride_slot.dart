@@ -12,9 +12,7 @@ class FeedbackWindow {
 }
 
 FeedbackWindow windowFor(RideSlot current, RideSlot? next) {
-  // Show feedback immediately after the current ride ends
   final showAt = current.end;
-  // Hide feedback one minute before the next ride starts (if any)
   final hideAt = (next == null
           ? DateTime.fromMillisecondsSinceEpoch(8640000000000000)
           : next.start)
@@ -31,8 +29,6 @@ bool shouldShowFeedback({
   if (feedbackAlreadySubmitted) return false;
   final now = nowLocal ?? DateTime.now();
   final win = windowFor(current, next);
-  // Hide the card once the window has closed (at hideAt or later)
   if (!now.isBefore(win.hideAt)) return false;
-  // Show the card once the ride has finished
   return !now.isBefore(win.showAt);
 }

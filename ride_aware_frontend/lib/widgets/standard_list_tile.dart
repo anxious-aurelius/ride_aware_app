@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'standard_card.dart';
 
-/// A ListTile wrapped in [StandardCard] with consistent styling.
 class StandardListTile extends StatelessWidget {
   const StandardListTile({
     super.key,

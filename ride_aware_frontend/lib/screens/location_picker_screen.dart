@@ -18,12 +18,11 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final MapController _mapController = MapController();
-  LatLng _selectedLocation = const LatLng(51.5, -0.09); // Default to London
+  LatLng _selectedLocation = const LatLng(51.5, -0.09);
 
   @override
   void initState() {
     super.initState();
-    // Set initial location if provided, otherwise use default
     if (widget.initialLocation != null) {
       _selectedLocation = widget.initialLocation!;
     }
@@ -55,7 +54,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
               onPositionChanged: (position, hasGesture) {
-                // Update selected location to the center of the current view
                 if (position.center != null) {
                   setState(() {
                     _selectedLocation = position.center!;
@@ -83,7 +81,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               ),
             ),
           ),
-          // Custom Zoom Buttons
           Positioned(
             bottom: 100,
             right: 20,
@@ -115,7 +112,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               ],
             ),
           ),
-          // Location info card
           Positioned(
             bottom: 20,
             left: 20,

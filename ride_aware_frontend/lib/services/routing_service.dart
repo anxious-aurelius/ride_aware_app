@@ -5,14 +5,12 @@ import '../models/geo_point.dart';
 import '../utils/parsing.dart';
 
 class RoutingService {
-  // IMPORTANT: Replace with your actual OpenRouteService API Key
   static const String _openRouteServiceApiKey =
       'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjQyM2VmNTJhZTQzYzRkOWFhMGM5M2MyOGM0MTdhNDEwIiwiaCI6Im11cm11cjY0In0=';
   static const String _openRouteServiceBaseUrl =
       'https://api.openrouteservice.org/v2/directions/cycling-road'; // Using cycling-road profile
 
-  /// Fetches a list of GeoPoints representing a route path between two points.
-  /// Uses OpenRouteService API.
+
   Future<List<GeoPoint>> fetchRoutePoints(GeoPoint start, GeoPoint end) async {
     if (_openRouteServiceApiKey == 'YOUR_OPENROUTESERVICE_API_KEY' ||
         _openRouteServiceApiKey.isEmpty) {
@@ -21,7 +19,7 @@ class RoutingService {
       );
     }
 
-    // New coordinates format: start=lon,lat&end=lon,lat
+
     final String coordinates =
         'start=${start.longitude},${start.latitude}&end=${end.longitude},${end.latitude}';
     final Uri uri = Uri.parse(
@@ -29,7 +27,7 @@ class RoutingService {
     );
 
     if (kDebugMode) {
-      print('🚀 Routing API Request Debug:');
+      print('   Routing API Request Debug:');
       print('   Endpoint: $uri');
       print('   Start Point: ${start.latitude}, ${start.longitude}');
       print('   End Point: ${end.latitude}, ${end.longitude}');
@@ -39,10 +37,9 @@ class RoutingService {
       final response = await http.get(uri);
 
       if (kDebugMode) {
-        print('📡 Routing API Response: ${response.statusCode}');
+        print('   Routing API Response: ${response.statusCode}');
         print('   Response Headers: ${response.headers}');
         if (response.body.isNotEmpty) {
-          // Truncate very long responses for readability
           final bodyPreview = response.body.length > 500
               ? '${response.body.substring(0, 500)}...[truncated]'
               : response.body;
@@ -56,7 +53,7 @@ class RoutingService {
             data['features'][0]['geometry']['coordinates'];
 
         if (kDebugMode) {
-          print('✅ Route Processing:');
+          print('   Route Processing:');
           print('   Raw coordinates count: ${coordinatesList.length}');
           if (coordinatesList.isNotEmpty) {
             print('   First coordinate: ${coordinatesList.first}');
@@ -64,7 +61,6 @@ class RoutingService {
           }
         }
 
-        // OpenRouteService returns [longitude, latitude]
         final routePoints = coordinatesList.map((coord) {
           return GeoPoint(
             latitude: parseDouble(coord[1]),
@@ -84,7 +80,7 @@ class RoutingService {
             'Failed to fetch route: ${response.statusCode} - ${errorBody['error']['message'] ?? 'Unknown error'}';
 
         if (kDebugMode) {
-          print('❌ Routing API Error Response:');
+          print('   Routing API Error Response:');
           print('   Status Code: ${response.statusCode}');
           print('   Error Body: ${response.body}');
         }
@@ -93,7 +89,7 @@ class RoutingService {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Routing API Exception:');
+        print('   Routing API Exception:');
         print('   Error Type: ${e.runtimeType}');
         print('   Error Message: $e');
         print(

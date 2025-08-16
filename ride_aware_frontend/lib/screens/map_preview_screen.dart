@@ -26,7 +26,6 @@ class _MapPreviewScreenState extends State<MapPreviewScreen> {
   @override
   void initState() {
     super.initState();
-    // Move map to center and zoom level after the map is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.move(widget.mapCenter, 13.0);
     });
@@ -45,12 +44,12 @@ class _MapPreviewScreenState extends State<MapPreviewScreen> {
             mapController: _mapController,
             options: MapOptions(
               initialCenter: widget.mapCenter,
-              initialZoom: 13.0, // A good default zoom for a route
+              initialZoom: 13.0,
               interactionOptions: const InteractionOptions(
                 flags:
                     InteractiveFlag.all &
                     ~InteractiveFlag
-                        .rotate, // Allow pan and zoom, but not rotate
+                        .rotate,
               ),
             ),
             children: [
@@ -80,7 +79,6 @@ class _MapPreviewScreenState extends State<MapPreviewScreen> {
                       size: 40,
                     ),
                   ),
-                  // End Marker (Office)
                   Marker(
                     point: widget.endPoint,
                     width: 80,
@@ -91,14 +89,13 @@ class _MapPreviewScreenState extends State<MapPreviewScreen> {
               ),
             ],
           ),
-          // Custom Zoom Buttons
           Positioned(
             bottom: 20,
             right: 20,
             child: Column(
               children: [
                 FloatingActionButton(
-                  heroTag: 'zoomInBtn', // Unique tag for hero animation
+                  heroTag: 'zoomInBtn',
                   mini: true,
                   onPressed: () {
                     _mapController.move(
@@ -110,7 +107,7 @@ class _MapPreviewScreenState extends State<MapPreviewScreen> {
                 ),
                 const SizedBox(height: 10),
                 FloatingActionButton(
-                  heroTag: 'zoomOutBtn', // Unique tag for hero animation
+                  heroTag: 'zoomOutBtn',
                   mini: true,
                   onPressed: () {
                     _mapController.move(

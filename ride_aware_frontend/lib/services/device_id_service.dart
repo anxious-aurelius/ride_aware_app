@@ -1,14 +1,13 @@
-import 'dart:convert'; // For utf8.encode
-import 'package:crypto/crypto.dart'; // For sha256
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter/foundation.dart'; // For debugPrint
+import 'package:flutter/foundation.dart';
 
 class DeviceIdService {
   static const String _participantIdHashKey = 'participantIdHash';
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
-  /// Get the stored participant ID hash.
-  /// Returns null if no hash is found (e.g., first launch or after reinstall).
+
   Future<String?> getParticipantIdHash() async {
     final String? hash = await _secureStorage.read(key: _participantIdHashKey);
     if (kDebugMode) {
@@ -21,7 +20,6 @@ class DeviceIdService {
     return hash;
   }
 
-  /// Hashes the provided participant code and stores it securely.
   Future<void> setParticipantCode(String participantCode) async {
     final String hash = _generateSha256Hash(participantCode);
     await _secureStorage.write(key: _participantIdHashKey, value: hash);
@@ -30,8 +28,6 @@ class DeviceIdService {
     }
   }
 
-  /// Clears the stored participant ID hash.
-  /// This will force the user to re-enter their code on next launch.
   Future<void> clearParticipantIdHash() async {
     await _secureStorage.delete(key: _participantIdHashKey);
     if (kDebugMode) {
@@ -39,16 +35,15 @@ class DeviceIdService {
     }
   }
 
-  /// Check if a participant ID hash exists in storage.
+
   Future<bool> hasParticipantIdHash() async {
     final String? hash = await _secureStorage.read(key: _participantIdHashKey);
     return hash != null && hash.isNotEmpty;
   }
 
-  /// Helper to generate SHA-256 hash of a string.
   String _generateSha256Hash(String input) {
-    final bytes = utf8.encode(input); // Data to be hashed
-    final digest = sha256.convert(bytes); // Hash it
-    return digest.toString(); // Get the hex string
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }

@@ -20,7 +20,6 @@ class UserPreferences {
     this.timezone = 'Europe/London',
   });
 
-  // Default preferences for first-time users
   factory UserPreferences.defaultValues() {
     return UserPreferences(
       weatherLimits: WeatherLimits.defaultValues(),
@@ -33,7 +32,6 @@ class UserPreferences {
     );
   }
 
-  // Create from JSON (for API and local storage)
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
       weatherLimits: WeatherLimits.fromJson(json['weather_limits'] ?? {}),
@@ -51,7 +49,6 @@ class UserPreferences {
     );
   }
 
-  // Convert to JSON (for API and local storage)
   Map<String, dynamic> toJson() {
     return {
       'weather_limits': weatherLimits.toJson(),
@@ -65,7 +62,6 @@ class UserPreferences {
     };
   }
 
-  // Create a copy with updated values
   UserPreferences copyWith({
     WeatherLimits? weatherLimits,
     EnvironmentalRisk? environmentalRisk,
@@ -86,7 +82,6 @@ class UserPreferences {
     );
   }
 
-  // Validation
   bool get isValid {
     return weatherLimits.isValid &&
         environmentalRisk.isValid &&
@@ -122,7 +117,6 @@ class UserPreferences {
 
   @override
   String toString() {
-    // ignore: lines_longer_than_80_chars
     return 'UserPreferences(weatherLimits: $weatherLimits, environmentalRisk: $environmentalRisk, officeLocation: $officeLocation, commuteWindows: $commuteWindows, presenceRadiusM: $presenceRadiusM, speedCutoffKmh: $speedCutoffKmh, timezone: $timezone)';
   }
 }
@@ -151,7 +145,7 @@ class WeatherLimits {
       maxWindSpeed: 30.0,
       maxRainIntensity: 0.5,
       maxHumidity: 85.0,
-      minTemperature: 5.0, // 5°C minimum - cyclists don't like cold weather
+      minTemperature: 5.0,
       maxTemperature: 32.0,
       headwindSensitivity: 20.0,
       crosswindSensitivity: 15.0,
@@ -224,7 +218,7 @@ class WeatherLimits {
         crosswindSensitivity >= 0 &&
         crosswindSensitivity <= 50 &&
         minTemperature <=
-            maxTemperature; // Min temp must be less than or equal to max temp
+            maxTemperature;
   }
 
   @override
@@ -395,10 +389,8 @@ class OfficeLocation {
 }
 
 class CommuteWindows {
-  /// Stored in local time (HH:mm)
   final String start;
 
-  /// Stored in local time (HH:mm)
   final String end;
 
   const CommuteWindows._({required this.start, required this.end});
@@ -411,7 +403,6 @@ class CommuteWindows {
   }
 
   factory CommuteWindows.defaultValues() {
-    // Default times in local time
     return CommuteWindows(start: '07:30', end: '17:30');
   }
 
@@ -468,10 +459,8 @@ class CommuteWindows {
     return const TimeOfDay(hour: 7, minute: 30);
   }
 
-  /// Get route start time in the local timezone
   TimeOfDay get startLocal => _stringToTimeOfDay(start);
 
-  /// Get route end time in the local timezone
   TimeOfDay get endLocal => _stringToTimeOfDay(end);
 
   @override

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class RideDetailsScreen extends StatelessWidget {
-  final Map<String, dynamic> ride; // raw ride map from API
+  final Map<String, dynamic> ride;
   const RideDetailsScreen({super.key, required this.ride});
 
   @override
@@ -13,15 +13,12 @@ class RideDetailsScreen extends StatelessWidget {
     final end      = (ride['end_time'] ?? '').toString();
     final status   = (ride['status'] ?? 'ok').toString();
 
-    // Prefer consolidated feedback_summary; fall back to legacy feedback
     final feedback = (ride['feedback_summary'] ?? ride['feedback'] ?? '').toString();
 
-    // ✅ summary is a MAP (if provided)
     final summaryMap   = _asStringMap(ride['summary']);
     final thresholdMap = _asStringMap(ride['threshold']);
     final weatherList  = _asListOfMaps(ride['weather_history']);
 
-    // threshold values (only these are shown)
     final limits    = _asStringMap(thresholdMap['weather_limits']);
     final minTemp   = limits['min_temperature'];
     final maxTemp   = limits['max_temperature'];
@@ -93,7 +90,6 @@ class RideDetailsScreen extends StatelessWidget {
                             _infoRow(context, 'Status', status),
                             const SizedBox(height: 10),
 
-                            // Show MAP summary if present; otherwise fall back to feedback text; otherwise "No summary."
                             if (summaryMap.isNotEmpty)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +328,6 @@ class RideDetailsScreen extends StatelessWidget {
     return null;
   }
 
-  // Nicely format numbers; keep non-numeric as-is
   static String _fmtNumOrText(dynamic v, String suffix) {
     if (!_hasValue(v)) return '—';
     final n = double.tryParse(v.toString());
@@ -367,7 +362,6 @@ class RideDetailsScreen extends StatelessWidget {
     return entries;
   }
 
-  // aligned key/value row (used in overview & detail sheets) — overflow-safe
   Widget _infoRow(BuildContext context, String k, String v) {
     final theme = Theme.of(context);
     return Padding(
@@ -402,7 +396,6 @@ class RideDetailsScreen extends StatelessWidget {
     );
   }
 
-  // nice, aligned 2-column table for threshold values
   Widget _kvTable(BuildContext context, {required List<_KV> rows}) {
     final theme = Theme.of(context);
     final labelStyle =
@@ -434,7 +427,6 @@ class RideDetailsScreen extends StatelessWidget {
     );
   }
 
-  // weather list header (aligned with rows)
   Widget _weatherHeader(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
@@ -477,7 +469,7 @@ class RideDetailsScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 22), // space for chevron alignment
+          const SizedBox(width: 22),
         ],
       ),
     );
@@ -529,7 +521,6 @@ class RideDetailsScreen extends StatelessWidget {
                         return _infoRow(context, 'Time', _fmtIsoToHm(ts));
                       }
                       final k = keys[i - 1];
-                      // for detail view, show raw value but still avoid nulls
                       return _infoRow(context, _labelize(k), _toText(w[k]));
                     },
                   ),
@@ -543,7 +534,6 @@ class RideDetailsScreen extends StatelessWidget {
   }
 }
 
-// simple data holder for table rows
 class _KV {
   final String k;
   final String v;

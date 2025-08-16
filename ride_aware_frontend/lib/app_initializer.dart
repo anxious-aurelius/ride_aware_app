@@ -34,11 +34,9 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _checkAppState() async {
     try {
-      // 1. Check if participant ID hash exists
       final hasParticipantId = await _deviceIdService.hasParticipantIdHash();
 
       if (hasParticipantId) {
-        // 2. If participant ID exists, check if preferences are set
         final thresholdsSet = await _preferencesService.arePreferencesSet();
         setState(() {
           _hasParticipantId = true;
@@ -46,23 +44,19 @@ class _AppInitializerState extends State<AppInitializer> {
           _isLoading = false;
         });
       } else {
-        // 3. If no participant ID, go to participant code entry
+
         setState(() {
           _hasParticipantId = false;
           _isLoading = false;
         });
       }
     } catch (e) {
-      // Handle any errors during initialization
+
       setState(() {
         _isLoading = false;
-        _hasParticipantId = false; // Assume no ID if error
+        _hasParticipantId = false;
         _thresholdsSet = false;
       });
-      // Optionally show an error message
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('App initialization failed: $e')),
-      // );
     }
   }
 

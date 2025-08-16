@@ -3,7 +3,7 @@ import '../services/commute_status_service.dart';
 import '../services/api_service.dart';
 
 class PostRideFeedbackScreen extends StatefulWidget {
-  final String commute; // 'start' or 'end'
+  final String commute;
   const PostRideFeedbackScreen({super.key, required this.commute});
 
   @override

@@ -11,7 +11,7 @@ class CommuteAlertResult {
   final WeatherLimits limits;
   final RouteModel route;
   final Map<String, dynamic> summary;
-  final String status; // ok, warning, alert
+  final String status;
   final List<String> issues;
   final List<String> borderline;
 

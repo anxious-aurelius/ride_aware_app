@@ -1,4 +1,3 @@
-// lib/services/api_service.dart
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -13,15 +12,11 @@ import 'device_id_service.dart';
 import 'preferences_service.dart';
 
 class ApiService {
-  /// Your backend base URL (Android emulator uses 10.0.2.2 to hit host machine)
   static const String baseUrl = 'http://10.0.2.2:8889';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
   final PreferencesService _preferencesService = PreferencesService();
 
-  // ---------------------------------------------------------------------------
-  // Thresholds
-  // ---------------------------------------------------------------------------
   Future<String?> submitThresholds(UserPreferences preferences) async {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
@@ -31,7 +26,7 @@ class ApiService {
 
       if (!preferences.isValid) {
         if (kDebugMode) {
-          print('❌ Invalid preferences: ${jsonEncode(preferences.toJson())}');
+          print(' Invalid preferences: ${jsonEncode(preferences.toJson())}');
         }
         throw Exception('Invalid threshold values');
       }
@@ -52,7 +47,7 @@ class ApiService {
       };
 
       if (kDebugMode) {
-        print('🚀 POST $baseUrl/thresholds');
+        print('   POST $baseUrl/thresholds');
         print('   headers: ${await _getHeaders()}');
         print('   body: ${jsonEncode(body)}');
       }
@@ -64,7 +59,7 @@ class ApiService {
       );
 
       if (kDebugMode) {
-        print('📡 thresholds -> ${res.statusCode}');
+        print('  thresholds -> ${res.statusCode}');
         if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
@@ -82,7 +77,7 @@ class ApiService {
       }
       return thresholdId;
     } catch (e) {
-      if (kDebugMode) print('❌ submitThresholds error: $e');
+      if (kDebugMode) print(' submitThresholds error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -91,21 +86,21 @@ class ApiService {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
-        if (kDebugMode) print('ℹ️ No participant ID, skipping preferences fetch.');
+        if (kDebugMode) print('️ No participant ID, skipping preferences fetch.');
         return null;
       }
 
       final url = Uri.parse('$baseUrl/thresholds/$deviceId');
 
       if (kDebugMode) {
-        print('🚀 GET $url');
+        print(' GET $url');
         print('   headers: ${await _getHeaders()}');
       }
 
       final res = await http.get(url, headers: await _getHeaders());
 
       if (kDebugMode) {
-        print('📡 getUserPreferences -> ${res.statusCode}');
+        print(' getUserPreferences -> ${res.statusCode}');
         if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
@@ -118,7 +113,7 @@ class ApiService {
         throw Exception('Failed to get preferences: ${res.statusCode}');
       }
     } catch (e) {
-      if (kDebugMode) print('❌ getUserPreferences error: $e');
+      if (kDebugMode) print(' getUserPreferences error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -136,7 +131,7 @@ class ApiService {
       final body = route.copyWith(deviceId: deviceId).toJson();
 
       if (kDebugMode) {
-        print('🚀 POST $baseUrl/routes');
+        print('   POST $baseUrl/routes');
         print('   headers: ${await _getHeaders()}');
         print('   body: ${jsonEncode(body)}');
       }
@@ -148,7 +143,7 @@ class ApiService {
       );
 
       if (kDebugMode) {
-        print('📡 submitRoute -> ${res.statusCode}');
+        print(' submitRoute -> ${res.statusCode}');
         if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
@@ -156,7 +151,7 @@ class ApiService {
         throw Exception('Failed to submit route: ${res.statusCode}');
       }
     } catch (e) {
-      if (kDebugMode) print('❌ submitRoute error: $e');
+      if (kDebugMode) print(' submitRoute error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -178,7 +173,7 @@ class ApiService {
           'device_id': deviceId,
           'fcm_token': '${fcmToken.substring(0, 20)}...'
         };
-        print('🚀 POST $baseUrl/fcm/register');
+        print('   POST $baseUrl/fcm/register');
         print('   headers: ${await _getHeaders()}');
         print('   body: ${jsonEncode(masked)}');
       }
@@ -190,7 +185,7 @@ class ApiService {
       );
 
       if (kDebugMode) {
-        print('📡 submitFCMToken -> ${res.statusCode}');
+        print('  submitFCMToken -> ${res.statusCode}');
         if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
@@ -198,7 +193,7 @@ class ApiService {
         throw Exception('Failed to submit FCM token: ${res.statusCode}');
       }
     } catch (e) {
-      if (kDebugMode) print('❌ submitFCMToken error: $e');
+      if (kDebugMode) print(' submitFCMToken error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -229,7 +224,7 @@ class ApiService {
         throw Exception('Failed to submit feedback: ${res.statusCode}');
       }
     } catch (e) {
-      if (kDebugMode) print('❌ submitFeedback error: $e');
+      if (kDebugMode) print(' submitFeedback error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -252,7 +247,7 @@ class ApiService {
       final res = await http.get(uri, headers: await _getHeaders());
 
       if (kDebugMode) {
-        print('📡 fetchRideHistory -> ${res.statusCode}');
+        print(' fetchRideHistory -> ${res.statusCode}');
         if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
@@ -263,13 +258,13 @@ class ApiService {
       final data = jsonDecode(res.body) as List;
       return data.map((e) => RideHistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
-      if (kDebugMode) print('❌ fetchRideHistory error: $e');
+      if (kDebugMode) print(' fetchRideHistory error: $e');
       throw Exception('Network error: $e');
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Ride history (raw dicts — includes weather_history as-is)
+  // Ride history
   // ---------------------------------------------------------------------------
   Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({int lastDays = 30}) async {
     try {
@@ -299,7 +294,7 @@ class ApiService {
 
       return decoded.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
     } catch (e) {
-      if (kDebugMode) print('❌ fetchRideHistoryRaw error: $e');
+      if (kDebugMode) print(' fetchRideHistoryRaw error: $e');
       rethrow;
     }
   }
@@ -312,7 +307,7 @@ class ApiService {
       final res = await _postWithDeviceId('/rideHistory', entry.toJson());
 
       if (kDebugMode) {
-        print('📡 saveRideHistoryEntry -> ${res.statusCode}');
+        print(' saveRideHistoryEntry -> ${res.statusCode}');
         if (res.body.isNotEmpty) print('   body: ${res.body}');
       }
 
@@ -320,13 +315,13 @@ class ApiService {
         throw Exception('Failed to save ride history: ${res.statusCode}');
       }
     } catch (e) {
-      if (kDebugMode) print('❌ saveRideHistoryEntry error: $e');
+      if (kDebugMode) print(' saveRideHistoryEntry error: $e');
       throw Exception('Network error: $e');
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Weather pings (optional, for live snapshots during a ride)
+  // Weather pings
   // ---------------------------------------------------------------------------
   Future<void> pingWeather({
     required String thresholdId,
@@ -348,7 +343,7 @@ class ApiService {
     };
 
     if (kDebugMode) {
-      print('🚀 POST $baseUrl/weatherHistory/ping');
+      print('   POST $baseUrl/weatherHistory/ping');
       print('   headers: ${await _getHeaders()}');
       print('   body: ${jsonEncode(body)}');
     }
@@ -360,7 +355,7 @@ class ApiService {
     );
 
     if (kDebugMode) {
-      print('📡 pingWeather -> ${resp.statusCode}');
+      print(' pingWeather -> ${resp.statusCode}');
       if (resp.body.isNotEmpty) print('   body: ${resp.body}');
     }
 

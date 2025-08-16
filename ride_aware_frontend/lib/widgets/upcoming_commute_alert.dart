@@ -11,7 +11,6 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../screens/wind_map_screen.dart';
 
-// Helper classes defined outside the widget
 class _WeatherMetric {
   final IconData icon;
   final String caption;
@@ -83,7 +82,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   bool _showThresholdForm = false;
   bool _isSaving = false;
 
-  // PRE-RIDE NOTIFICATION STATE
   DateTime? _preRideAlertSentForDate;
 
   UserPreferences? _prefs;
@@ -96,7 +94,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   @override
   void initState() {
     super.initState();
-    if (kDebugMode) debugPrint('📋 UpcomingCommuteAlert initialized');
+    if (kDebugMode) debugPrint(' UpcomingCommuteAlert initialized');
     _vm.addListener(_onUpdate);
     _vm.load();
     _loadPrefs();
@@ -109,8 +107,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     setState(() => _prefs = prefs);
   }
 
-  /// Called by Dashboard every ~20s.
-  /// Fires exactly once inside the 3-hour window before the next ride start.
   void maybePreRideAlertCheck() async {
     if (_prefs == null) return;
     if (_vm.isLoading || _vm.result == null) return;
@@ -149,7 +145,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       await NotificationService().showPreRideAlert(message);
       _preRideAlertSentForDate = rideDayKey;
       if (kDebugMode) {
-        debugPrint('🔔 Pre-ride alert sent for $rideDayKey: $message');
+        debugPrint(' Pre-ride alert sent for $rideDayKey: $message');
       }
     }
   }
@@ -301,7 +297,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: icon + title (title stays on one line)
           Row(
             children: [
               Container(
@@ -328,9 +323,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             ],
           ),
           const SizedBox(height: 12),
-          // Row 2: chips wrapped (status + time) — never truncates content
           Padding(
-            padding: const EdgeInsets.only(left: 56), // align under title
+            padding: const EdgeInsets.only(left: 56),
             child: Wrap(
               spacing: 12,
               runSpacing: 8,
@@ -345,7 +339,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     );
   }
 
-  // Animated status pill (full text shown)
   Widget _buildStatusPill(ThemeData theme, _StatusInfo status) {
     final cs = theme.colorScheme;
     return AnimatedSwitcher(
@@ -377,7 +370,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     );
   }
 
-  // Time “chip” (always shows full day & time)
   Widget _buildTimeChip(ThemeData theme, DateTime time) {
     final cs = theme.colorScheme;
     return Container(
@@ -410,13 +402,12 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     return Icons.check_circle_outline;
   }
 
-  // ---------- Weather Metrics ----------
   Widget _buildWeatherMetrics(
       ThemeData theme,
       CommuteAlertResult result,
       WeatherLimits limits,
       ) {
-    // Temperature evaluation
+
     final minTemp = parseDouble(result.summary['min_temp']);
     final maxTemp = parseDouble(result.summary['max_temp']);
     String tempCaption;
@@ -972,7 +963,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     }
   }
 
-  // Neutral issues section with tinted border
   Widget _buildIssuesSection(
       CommuteAlertResult result,
       Color color,
@@ -1093,7 +1083,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 final timeStr = f['time']?.toString();
                 if (timeStr != null) time = DateTime.tryParse(timeStr);
                 final label = time != null
-                    ? '${time.hour.toString().padLeft(2, '0')}:00'
+                    ? '${time.hour.toString().padLeft(0, '0')}:00'
                     : 'Hour ${index + 1}';
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 4),
@@ -1268,14 +1258,14 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Set Your Commute Time',
+              'Set Your Ride Time',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              t('No commute time set'),
+              t('No ride time set'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

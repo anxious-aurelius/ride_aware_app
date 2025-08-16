@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // For FilteringTextInputFormatter
+import 'package:flutter/services.dart';
 import '../services/device_id_service.dart';
-import '../app_initializer.dart'; // To navigate back to initializer
+import '../app_initializer.dart';
 
 class ParticipantCodeScreen extends StatefulWidget {
   const ParticipantCodeScreen({super.key});
@@ -36,7 +36,6 @@ class _ParticipantCodeScreenState extends State<ParticipantCodeScreen> {
       _showSnackBar('Participant code saved!', Colors.green);
 
       if (mounted) {
-        // Navigate back to AppInitializer to re-evaluate the state
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const AppInitializer()),
@@ -102,7 +101,7 @@ class _ParticipantCodeScreenState extends State<ParticipantCodeScreen> {
                 inputFormatters: [
                   FilteringTextInputFormatter.deny(
                     RegExp(r'\s'),
-                  ), // Prevent spaces
+                  ),
                 ],
               ),
               const SizedBox(height: 24),

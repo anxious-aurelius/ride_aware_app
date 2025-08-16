@@ -14,7 +14,6 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   final ApiService _apiService = ApiService();
 
-  /// Raw history grouped by calendar day (local) for TableCalendar.
   Map<DateTime, List<Map<String, dynamic>>> _history = {};
   bool _loading = true;
   String? _error;
@@ -42,7 +41,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final key = DateTime(start.year, start.month, start.day);
         map.putIfAbsent(key, () => []).add(ride);
       }
-      // sort per-day by start time
       for (final k in map.keys) {
         map[k]!.sort((a, b) {
           final sa = _composeLocalDateTime(a['date'], a['start_time']);
@@ -147,7 +145,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           const SizedBox(height: 8),
 
-          // List of rides for selected day
           Expanded(
             child: entries.isEmpty
                 ? const Center(
@@ -180,7 +177,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // ---------- helpers still used by cards ----------
 
   static DateTime _composeLocalDateTime(dynamic dateIso, dynamic hhmm) {
     final d = (dateIso ?? '').toString();
@@ -205,7 +201,6 @@ class _RideCard extends StatelessWidget {
 
   const _RideCard({required this.ride, required this.onTap});
 
-  // local time formatter for this widget
   String _hmLocal(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
