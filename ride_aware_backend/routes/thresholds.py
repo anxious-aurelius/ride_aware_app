@@ -1,4 +1,4 @@
-# routes/thresholds.py
+
 from fastapi import APIRouter, HTTPException
 from models.thresholds import Thresholds
 from controllers.thresholds_controller import (

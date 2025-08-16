@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 async def _send_notification(device_id: str, message: str) -> None:
-    """Send notification to device if token is available."""
     doc = await fcm_tokens_collection.find_one({"device_id": device_id})
     token = doc.get("fcm_token") if doc else None
     if token:
@@ -25,7 +24,6 @@ async def _send_notification(device_id: str, message: str) -> None:
 
 
 async def _check_and_notify(threshold: Thresholds) -> None:
-    """Fetch upcoming forecast and notify with actionable advice."""
 
     device_id = threshold.device_id
     lat = float(threshold.office_location.latitude)
@@ -41,7 +39,6 @@ async def _check_and_notify(threshold: Thresholds) -> None:
 
 
 async def schedule_pre_route_alert(threshold: Thresholds) -> None:
-    """Schedule an alert three hours before commute start respecting timezone."""
 
     tz_name = getattr(threshold, "timezone", None) or datetime.now().astimezone().tzinfo.key
     tz = ZoneInfo(tz_name)
@@ -60,7 +57,6 @@ async def schedule_pre_route_alert(threshold: Thresholds) -> None:
 
 
 async def schedule_feedback_reminder(threshold: Thresholds) -> None:
-    """Schedule a feedback reminder one hour after commute end."""
 
     tz_name = getattr(threshold, "timezone", None) or datetime.now().astimezone().tzinfo.key
     tz = ZoneInfo(tz_name)
@@ -84,7 +80,6 @@ async def schedule_feedback_reminder(threshold: Thresholds) -> None:
 
 
 async def schedule_existing_alerts() -> None:
-    """Reschedule alerts for all upcoming rides stored in the database."""
 
     today = date.today().isoformat()
     cursor = thresholds_collection.find({"date": {"$gte": today}})

@@ -1,4 +1,4 @@
-"""Utilities for evaluating forecasts against user limits."""
+
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from typing import Dict, List
 
 @dataclass
 class Breach:
-    """Represents a single metric that exceeds a user's limit."""
 
     metric: str
     value: float
@@ -18,7 +17,6 @@ class Breach:
 
 
 def evaluate_forecast_point(point: Dict, limits: Dict) -> List[Breach]:
-    """Compare a forecast point against weather limits and return breaches."""
 
     out: List[Breach] = []
 
@@ -90,7 +88,6 @@ def evaluate_forecast_point(point: Dict, limits: Dict) -> List[Breach]:
 
 
 def summarize_breaches(hourly_breaches: List[List[Breach]]) -> str:
-    """Combine breaches into a short, de-duplicated advisory string."""
 
     flat = [b for lst in hourly_breaches for b in lst]
     if not flat:

@@ -19,7 +19,6 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
     start_time = data["start_time"]
     end_time = data["end_time"]
 
-    # allow multiple rides per day → include end_time in key
     filter_doc = {
         "device_id": device_id,
         "date": date,
@@ -37,7 +36,6 @@ async def upsert_threshold(threshold: Thresholds) -> dict:
 
     threshold_id_str = str(threshold_id)
 
-    # create linked docs / schedules
     await create_feedback_entry(device_id, threshold_id_str)
     await create_history_entry(device_id, threshold_id_str, date, start_time, end_time, data)
     await schedule_pre_route_alert(threshold)

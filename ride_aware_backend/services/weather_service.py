@@ -18,20 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_hourly_forecast(lat: float, lon: float, target_time: datetime) -> Dict:
-    """Fetch hourly forecast and return data closest to ``target_time``.
 
-    Parameters
-    ----------
-    lat, lon: float
-        Coordinates for the forecast request.
-    target_time: datetime
-        Desired hour for the weather forecast.
-
-    Returns
-    -------
-    dict
-        Dictionary containing key weather metrics for the closest hour.
-    """
     logger.info(
         "Fetching weather forecast for lat=%s lon=%s at %s",
         lat,
@@ -108,7 +95,7 @@ def get_next_hours_forecast(lat: float, lon: float, hours: int = 6):
     for item in forecast_list:
         rain_data = item.get("rain")
         if isinstance(rain_data, dict):
-            rain_data = rain_data.get("3h") or rain_data.get("1h")
+            rain_data = rain_data.get("1h") or rain_data.get("1h")
         results.append(
             {
                 "time": datetime.fromtimestamp(item.get("dt", 0)).isoformat(),

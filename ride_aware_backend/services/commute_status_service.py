@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 async def get_commute_status(device_id: str) -> dict:
-    """Return commute status for route start and end windows."""
     logger.info("Computing commute status for device %s", device_id)
     doc = await thresholds_collection.find_one({"device_id": device_id})
     if not doc:

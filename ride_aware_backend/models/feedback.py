@@ -17,7 +17,6 @@ class Feedback(BaseModel):
 
 
 class RideFeedback(BaseModel):
-    """Represents a ride feedback entry awaiting user input."""
 
     device_id: str = Field(..., min_length=6, max_length=64)
     threshold_id: str = Field(..., min_length=1)

@@ -6,7 +6,6 @@ from typing import List, Dict
 from .db import forecasts_collection
 
 async def save_hourly_forecasts(lat: float, lon: float, forecasts: List[Dict]) -> None:
-    """Store forecasts in the database with metadata."""
     doc = {
         "lat": lat,
         "lon": lon,

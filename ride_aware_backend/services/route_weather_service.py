@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 def _bearing(a: Dict[str, float], b: Dict[str, float]) -> float:
-    """Calculate bearing from point a to b in degrees."""
     import math
 
     lat1 = math.radians(a["latitude"])
@@ -27,17 +26,6 @@ def _bearing(a: Dict[str, float], b: Dict[str, float]) -> float:
 def evaluate_route_weather(
     points: List[Dict[str, float]], time: datetime, thresholds: WeatherLimits
 ) -> Dict[str, Any]:
-    """Fetch weather for multiple route points and evaluate against thresholds.
-
-    Parameters
-    ----------
-    points: list of dict
-        Sequence of coordinates with keys ``latitude`` and ``longitude``.
-    time: datetime
-        Scheduled commute time.
-    thresholds: WeatherLimits
-        User-defined comfort limits.
-    """
     if not points:
         raise ValueError("At least one route point is required")
 

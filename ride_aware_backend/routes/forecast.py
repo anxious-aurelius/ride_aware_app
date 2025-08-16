@@ -16,7 +16,6 @@ router = APIRouter(prefix="/api", tags=["Forecast"])
 
 @router.get("/forecast")
 async def forecast(lat: float, lon: float, time: datetime):
-    """Return weather forecast snapshot for given coordinates and time."""
     logger.info("Requesting forecast for lat=%s lon=%s at %s", lat, lon, time)
     try:
         return await get_forecast(lat, lon, time)
@@ -30,7 +29,6 @@ async def forecast(lat: float, lon: float, time: datetime):
 
 @router.get("/forecast/next")
 async def forecast_next(lat: float, lon: float, hours: int = 6):
-    """Return next hours forecast snapshots."""
     logger.info(
         "Requesting next %s hours forecast for lat=%s lon=%s", hours, lat, lon
     )
@@ -57,7 +55,6 @@ class RouteForecastRequest(BaseModel):
 
 @router.post("/forecast/route")
 async def forecast_route(req: RouteForecastRequest):
-    """Evaluate weather along a route of points."""
     logger.info("Route forecast request with %s points", len(req.points))
     try:
         pts = [p.dict() for p in req.points]

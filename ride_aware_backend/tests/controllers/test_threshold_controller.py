@@ -41,7 +41,7 @@ def test_upsert_threshold_insert(monkeypatch):
             ),
         },
     )()
-    monkeypatch.setattr(threshold_controller, "thresholds_collection", collection)
+    monkeypatch.setattr(thresholds_controller, "thresholds_collection", collection)
     create_fb = AsyncMock()
     create_hist = AsyncMock()
     monkeypatch.setattr(threshold_controller, "create_feedback_entry", create_fb)

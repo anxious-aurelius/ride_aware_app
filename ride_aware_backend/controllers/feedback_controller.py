@@ -7,10 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 async def create_feedback_entry(device_id: str, threshold_id: str) -> None:
-    """
-    Ensure a placeholder feedback doc exists for a given threshold_id.
-    Safe to call multiple times (upsert).
-    """
     await feedback_collection.update_one(
         {"threshold_id": threshold_id},
         {
@@ -25,12 +21,6 @@ async def create_feedback_entry(device_id: str, threshold_id: str) -> None:
 
 
 async def record_feedback(payload: dict) -> dict:
-    """
-    Upsert feedback for a threshold and immediately reflect it in ride_history:
-    - write to `feedback` collection
-    - set ride_history.status = 'completed'
-    - set ride_history.feedback_summary = payload['summary'] (if present)
-    """
     device_id = payload.get("device_id")
     threshold_id = payload.get("threshold_id")
     if not device_id or not threshold_id:
@@ -38,7 +28,6 @@ async def record_feedback(payload: dict) -> dict:
 
     feedback_summary = (payload.get("feedback_summary") or payload.get("summary") or "").strip()
 
-    # Write/overwrite feedback document
     doc = {
         k: v
         for k, v in payload.items()
@@ -54,14 +43,13 @@ async def record_feedback(payload: dict) -> dict:
         upsert=True,
     )
 
-    # Reflect into ride_history: single string field + completed status
     rh_update = {
         "$set": {
             "status": "completed",
             "feedback_summary": feedback_summary,
         },
         "$unset": {
-            "feedback": ""  # remove legacy string field if it exists
+            "feedback": ""
         },
     }
     await ride_history_collection.update_one({"threshold_id": threshold_id}, rh_update)

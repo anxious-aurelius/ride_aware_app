@@ -11,7 +11,6 @@ router = APIRouter(prefix="/commute", tags=["commute"])
 
 @router.get("/status/{device_id}")
 async def commute_status(device_id: str):
-    """Return commute status for the specified device."""
     logger.info("Requesting commute status for device %s", device_id)
     try:
         return await get_status(device_id)

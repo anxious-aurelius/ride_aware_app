@@ -1,4 +1,3 @@
-# services/db.py
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGO_URI
@@ -28,9 +27,6 @@ async def _ensure_index(coll, keys, **kwargs):
 
 
 async def init_db() -> None:
-    """Initialize database indexes (supports multiple rides per day)."""
-
-    # thresholds: one doc per (device_id, date, start_time, end_time)
     await _ensure_index(
         thresholds_collection,
         [("device_id", 1), ("date", 1), ("start_time", 1), ("end_time", 1)],
@@ -42,8 +38,6 @@ async def init_db() -> None:
         [("device_id", 1), ("date", -1), ("start_time", -1)],
         name="idx_threshold_device_date_start_desc",
     )
-
-    # one feedback per threshold
     await _ensure_index(
         feedback_collection,
         [("threshold_id", 1)],
@@ -52,7 +46,6 @@ async def init_db() -> None:
         partialFilterExpression={"threshold_id": {"$exists": True}},
     )
 
-    # ride_history: one ride per threshold window
     await _ensure_index(
         ride_history_collection,
         [("threshold_id", 1), ("date", 1), ("start_time", 1)],
@@ -65,7 +58,6 @@ async def init_db() -> None:
         name="idx_ride_device_date_desc",
     )
 
-    # weather_history keyed by threshold_id, sorted by time
     await _ensure_index(
         weather_history_collection,
         [("threshold_id", 1), ("timestamp", 1)],

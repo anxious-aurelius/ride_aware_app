@@ -1,4 +1,4 @@
-# routes/ride_history.py
+
 import logging
 from fastapi import APIRouter, HTTPException, Query
 from controllers.ride_history_controller import fetch_rides

@@ -9,9 +9,6 @@ def generate_recommendations(
     evaluation: Dict[str, Any],
     rules: Dict[str, List[str]] = None,
 ) -> List[str]:
-    """
-    Generate user suggestions based on evaluation results.
-    """
     logger.debug("Generating recommendations from evaluation: %s", evaluation)
     default_rules: Dict[str, List[str]] = {
         "time_exceeded": [

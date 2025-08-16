@@ -1,4 +1,3 @@
-# routes/weather_history.py
 import logging
 from datetime import datetime
 from typing import Optional

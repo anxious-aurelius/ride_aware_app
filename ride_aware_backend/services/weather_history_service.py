@@ -151,10 +151,6 @@ async def fetch_weather_history_window(
     end_time: str,
     timezone_str: str | None,
 ) -> List[Dict[str, object]]:
-    """
-    Return snapshots for this threshold between local start_time → end_time
-    on date_str using the threshold's timezone.
-    """
     tz = ZoneInfo(timezone_str) if timezone_str else ZoneInfo(datetime.now().astimezone().tzinfo.key)
     ride_date = date.fromisoformat(date_str)
     start_dt = datetime.combine(ride_date, parse_time(start_time), tzinfo=tz)

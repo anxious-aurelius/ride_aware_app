@@ -1,3 +1,4 @@
+// lib/screens/dashboard_screen.dart
 import 'dart:async';
 
 import 'package:active_commuter_support/app_initializer.dart';
@@ -5,13 +6,11 @@ import 'package:active_commuter_support/screens/preferences_screen.dart';
 import 'package:active_commuter_support/services/notification_service.dart';
 import 'package:active_commuter_support/services/preferences_service.dart';
 import 'package:active_commuter_support/widgets/upcoming_commute_alert.dart';
-import 'package:active_commuter_support/widgets/standard_card.dart';
-import 'package:active_commuter_support/widgets/standard_list_tile.dart';
 import 'package:active_commuter_support/widgets/ride_feedback_card.dart';
 import 'package:active_commuter_support/screens/post_ride_feedback_screen.dart';
 import 'package:active_commuter_support/screens/history_screen.dart';
 import 'package:active_commuter_support/services/api_service.dart';
-import 'package:active_commuter_support/models/ride_history_entry.dart'; // <- provides WeatherPoint + RideHistoryEntry
+import 'package:active_commuter_support/models/ride_history_entry.dart'; // WeatherPoint + RideHistoryEntry
 import 'package:active_commuter_support/models/user_preferences.dart';
 import 'package:flutter/material.dart';
 
@@ -61,12 +60,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   final GlobalKey<UpcomingCommuteAlertState> _alertKey =
   GlobalKey<UpcomingCommuteAlertState>();
 
-  // --- Bottom navigation ---
-  int _navIndex = 0;
+  // --- Bottom nav ---
+  int _currentTab = 0; // 0: Weather (dashboard), 1: History, 2: Preferences
 
   // --- UI helpers ---
-  static const _hPad = EdgeInsets.symmetric(horizontal: 16);
-  static const _sectionGap = SizedBox(height: 18);
   static const _maxContentWidth = 720.0;
 
   @override
@@ -102,17 +99,20 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
+  // IMPORTANT: also consider "feedback given today" even when there is no pendingId,
+  // so the End Ride FAB stays hidden after refresh.
   Future<void> _refreshFeedbackFlag() async {
     final pendingId = await _prefsService.getPendingFeedbackThresholdId();
-    final submitted = pendingId != null
-        ? await _prefsService.getFeedbackSubmitted(pendingId)
-        : false;
+    final submittedForPending =
+    pendingId != null ? (await _prefsService.getFeedbackSubmitted(pendingId)) : false;
+    final todayEnded = await _prefsService.isEndFeedbackGivenToday();
     final hideForNextRide = await _computeHideForNextRide();
+
     if (!mounted) return;
     setState(() {
       _pendingFeedbackThresholdId = pendingId;
-      _endFeedbackGiven = submitted;
-      _showFeedback = pendingId != null && !submitted && !hideForNextRide;
+      _endFeedbackGiven = (todayEnded || (submittedForPending ?? false));
+      _showFeedback = pendingId != null && !(submittedForPending ?? false) && !hideForNextRide;
     });
   }
 
@@ -138,8 +138,16 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     final now = DateTime.now();
     final endLocal = _prefs!.commuteWindows.endLocal;
-    final rideEndToday =
+    var rideEndToday =
     DateTime(now.year, now.month, now.day, endLocal.hour, endLocal.minute);
+
+    // If end is before start in prefs (overnight window), move end to next day.
+    final startLocal = _prefs!.commuteWindows.startLocal;
+    final rideStartToday =
+    DateTime(now.year, now.month, now.day, startLocal.hour, startLocal.minute);
+    if (!rideEndToday.isAfter(rideStartToday)) {
+      rideEndToday = rideEndToday.add(const Duration(days: 1));
+    }
 
     if (now.isAfter(rideEndToday)) {
       final thresholdId = await _prefsService.getCurrentThresholdId();
@@ -155,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       setState(() {
         _showFeedback = true;
         _endFeedbackGiven = false;
-        _pendingFeedbackThresholdId = usedId; // <- use the actual persisted ID
+        _pendingFeedbackThresholdId = usedId;
       });
 
       await _notificationService.showFeedbackNotification();
@@ -232,7 +240,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _nextRide = _determineNextRide(DateTime.now());
     if (!mounted) return;
     setState(() {
-      _showFeedback = true;
+      _showFeedback = true; // show the feedback card
       _endFeedbackGiven = false;
       _pendingFeedbackThresholdId = thresholdId;
     });
@@ -289,7 +297,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         } else if (_pendingRide != null) {
           _prefsService.setFeedbackSubmitted(_pendingRide!.rideId, true);
         }
-        _showFeedback = false;
+        _showFeedback = false; // feedback done -> hide card (and FAB stays hidden)
         _pendingFeedbackThresholdId = null;
       });
       await _prefsService.setEndFeedbackGiven(DateTime.now());
@@ -305,30 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  // --- Bottom navigation actions ---
-  void _onNavTap(int index) async {
-    setState(() => _navIndex = index);
-    switch (index) {
-      case 0: // Weather
-        _alertKey.currentState?.openHourlyForecast();
-        break;
-      case 1: // History
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HistoryScreen()),
-        );
-        break;
-      case 2: // Preferences
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PreferencesScreen()),
-        );
-        await _loadPrefs();
-        break;
-    }
-  }
-
-  // --- UI Building blocks ---
+  // --- AppBar ---
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return AppBar(
@@ -337,6 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       backgroundColor: cs.surface,
       foregroundColor: cs.onSurface,
       scrolledUnderElevation: 2,
+      leading: _brandMark(cs),
       title: Text(
         'Dashboard',
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -344,29 +330,39 @@ class _DashboardScreenState extends State<DashboardScreen>
           color: cs.onSurface,
         ),
       ),
-      actions: [
-        Tooltip(
-          message: 'End Ride',
-          child: IconButton(
-            onPressed: _manualEndRide,
-            icon: const Icon(Icons.stop_circle_outlined),
+      // Removed top-right actions (Settings + End Ride) as requested.
+    );
+  }
+
+  // Small, theme-matching brand mark (no external asset)
+  Widget _brandMark(ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              cs.primary.withOpacity(0.90),
+              cs.primaryContainer.withOpacity(0.85),
+            ],
           ),
+          border: Border.all(color: cs.outlineVariant.withOpacity(0.25)),
+          boxShadow: [
+            BoxShadow(
+              color: cs.primary.withOpacity(0.22),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        Tooltip(
-          message: 'Settings',
-          child: IconButton(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const PreferencesScreen()),
-              );
-              await _loadPrefs();
-            },
-            icon: const Icon(Icons.settings_outlined),
-          ),
-        ),
-      ],
+        alignment: Alignment.center,
+        child: Icon(Icons.pedal_bike, size: 18, color: cs.onPrimaryContainer),
+      ),
     );
   }
 
@@ -388,8 +384,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             CircleAvatar(
               radius: 20,
               backgroundColor: cs.primaryContainer,
-              child:
-              Icon(Icons.pedal_bike, size: 23, color: cs.onPrimaryContainer),
+              child: Icon(Icons.pedal_bike, size: 23, color: cs.onPrimaryContainer),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -470,8 +465,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         backgroundColor: cs.surfaceContainerHighest,
         side: BorderSide(color: cs.outlineVariant.withOpacity(0.30)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        labelStyle:
-        theme.textTheme.labelMedium?.copyWith(color: cs.onSurface),
+        labelStyle: theme.textTheme.labelMedium?.copyWith(color: cs.onSurface),
       ),
       listTileTheme: theme.listTileTheme.copyWith(
         iconColor: cs.primary,
@@ -493,8 +487,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           key: _alertKey,
           feedbackSummary: _feedbackSummary,
           onThresholdUpdated: _loadPrefs,
-          onRideStarted:
-              (String rideId, DateTime start, Map<String, dynamic> threshold) async {
+          onRideStarted: (String rideId, DateTime start,
+              Map<String, dynamic> threshold) async {
             await _prefsService.setPendingFeedback(null);
             await _prefsService.setPendingFeedbackThresholdId(null);
             if (!mounted) return;
@@ -566,34 +560,102 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // We remove the refresh button section entirely (per your screenshot).
-  Widget _actionSpacerRemoved() => const SizedBox.shrink();
-
-  // Single “Ride History” shortcut card (kept), matching History styling.
-  Widget _rideHistoryShortcut(BuildContext context) {
+  // --- Bottom Navigation ---
+  Widget _buildBottomNav(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Material(
-        borderRadius: BorderRadius.circular(14),
-        elevation: 1,
-        color: cs.surfaceContainerHighest.withOpacity(0.96),
-        child: ListTile(
-          leading: Icon(Icons.history, color: cs.primary),
-          title: const Text('Ride History',
-              style: TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: const Text('View your last 30 days of rides'),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const HistoryScreen(),
-              ),
-            );
+
+    return NavigationBarTheme(
+      data: NavigationBarThemeData(
+        backgroundColor: cs.surfaceContainerHighest.withOpacity(0.80),
+        indicatorColor: cs.primary.withOpacity(0.12),
+        elevation: 0,
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>(
+              (states) => TextStyle(
+            fontWeight:
+            states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith<IconThemeData?>(
+              (states) => IconThemeData(
+            color:
+            states.contains(WidgetState.selected) ? cs.primary : cs.onSurfaceVariant,
+          ),
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: cs.outlineVariant.withOpacity(0.30)),
+          ),
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentTab,
+          height: 64,
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.cloud_outlined), label: 'Weather'),
+            NavigationDestination(icon: Icon(Icons.history), label: 'History'),
+            NavigationDestination(icon: Icon(Icons.tune), label: 'Preferences'),
+          ],
+          onDestinationSelected: (index) async {
+            // NEW: Weather button shows the 6h forecast dialog.
+            if (index == 0) {
+              _alertKey.currentState?.openHourlyForecast();
+              return;
+            }
+            setState(() => _currentTab = index);
+            if (index == 1) {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              );
+              setState(() => _currentTab = 0);
+            } else if (index == 2) {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PreferencesScreen()),
+              );
+              setState(() => _currentTab = 0);
+            }
           },
         ),
       ),
     );
+  }
+
+  // --- Ride window / FAB visibility helpers ---
+
+  bool _isDuringRideWindow() {
+    if (_prefs == null) return false;
+    final now = DateTime.now();
+
+    final startTod = _prefs!.commuteWindows.startLocal;
+    final endTod = _prefs!.commuteWindows.endLocal;
+
+    var start =
+    DateTime(now.year, now.month, now.day, startTod.hour, startTod.minute);
+    var end = DateTime(now.year, now.month, now.day, endTod.hour, endTod.minute);
+
+    // Handle overnight windows (end <= start)
+    if (!end.isAfter(start)) {
+      // end next day
+      if (now.isBefore(start)) {
+        // before start -> treat window from yesterday's start to today's end
+        start = start.subtract(const Duration(days: 1));
+      } else {
+        end = end.add(const Duration(days: 1));
+      }
+    }
+
+    return now.isAfter(start) && now.isBefore(end);
+  }
+
+  bool get _shouldShowRideStopFab {
+    // show only during ride, and only if no feedback is pending/visible/already given
+    if (!_isDuringRideWindow()) return false;
+    if (_showFeedback) return false;
+    if (_endFeedbackGiven) return false;
+    if (_pendingFeedbackThresholdId != null) return false;
+    return true;
   }
 
   @override
@@ -601,58 +663,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     _resetFlagsIfNewDay();
     final showFeedback = _showFeedback;
     final cs = Theme.of(context).colorScheme;
-
-    final navBar = Theme(
-      data: Theme.of(context).copyWith(
-        navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: Colors.transparent, // we color the wrapper Container
-          indicatorColor: cs.primary.withOpacity(0.12),
-          iconTheme: MaterialStateProperty.all(
-            IconThemeData(color: cs.onSurfaceVariant),
-          ),
-          labelTextStyle: MaterialStateProperty.all(
-            TextStyle(
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          elevation: 0,
-          height: 68,
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest.withOpacity(0.96),
-          border: Border(
-            top: BorderSide(color: cs.outlineVariant.withOpacity(0.25)),
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: NavigationBar(
-            selectedIndex: _navIndex,
-            onDestinationSelected: _onNavTap,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.cloud_outlined),
-                selectedIcon: Icon(Icons.cloud),
-                label: 'Weather',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.history),
-                selectedIcon: Icon(Icons.history_rounded),
-                label: 'History',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.tune),
-                selectedIcon: Icon(Icons.tune_rounded),
-                label: 'Preferences',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
 
     return Scaffold(
       appBar: _buildAppBar(context),
@@ -662,13 +672,14 @@ class _DashboardScreenState extends State<DashboardScreen>
           onRefresh: () async {
             await _loadPrefs();
             _alertKey.currentState?.refreshForecast();
+            await _refreshFeedbackFlag();
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               const SliverToBoxAdapter(child: SizedBox(height: 18)),
               SliverToBoxAdapter(child: _centered(child: _welcomeHeader(context))),
-              SliverToBoxAdapter(child: const SizedBox(height: 10)),
+              const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
               // Post-ride feedback card
               SliverToBoxAdapter(
@@ -694,19 +705,22 @@ class _DashboardScreenState extends State<DashboardScreen>
               // Upcoming commute
               SliverToBoxAdapter(child: _sectionTitle('Upcoming commute')),
               SliverToBoxAdapter(child: _centered(child: _upcomingCommuteBlock())),
-
-              // (Removed) Refresh Forecast button section
-              SliverToBoxAdapter(child: _actionSpacerRemoved()),
-
-              // Ride History shortcut (kept)
-              const SliverToBoxAdapter(child: SizedBox(height: 22)),
-              SliverToBoxAdapter(child: _centered(child: _rideHistoryShortcut(context))),
-              const SliverToBoxAdapter(child: SizedBox(height: 28)),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: navBar,
+
+      // New placement for End Ride: FAB appears only during the ride window.
+      floatingActionButton: _shouldShowRideStopFab
+          ? FloatingActionButton.extended(
+        heroTag: 'endRideFab',
+        onPressed: _manualEndRide,
+        icon: const Icon(Icons.stop_circle_outlined),
+        label: const Text('End Ride'),
+      )
+          : null,
+
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 }

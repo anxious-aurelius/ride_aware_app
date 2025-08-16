@@ -11,31 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate_thresholds(weather_data: dict, thresholds: WeatherLimits) -> List[str]:
-    """Return only exceeded threshold messages for backwards compatibility."""
     return evaluate_detailed_thresholds(weather_data, thresholds)["issues"]
 
 
 def evaluate_detailed_thresholds(
     weather_data: Dict, thresholds: WeatherLimits, route_bearing: float | None = None
 ) -> Dict[str, List[str] | float | None]:
-    """Compare weather data against user thresholds with borderline and wind context.
-
-    Parameters
-    ----------
-    weather_data: dict
-        Snapshot of weather metrics.
-    thresholds: WeatherLimits
-        User defined limits.
-    route_bearing: float, optional
-        Bearing of the route (degrees) for head/cross wind calculation.
-
-    Returns
-    -------
-    dict
-        Dictionary containing ``issues`` and ``borderline`` lists along with
-        calculated ``headwind`` and ``crosswind`` values when bearing and wind
-        direction are available.
-    """
     issues: List[str] = []
     borderline: List[str] = []
 

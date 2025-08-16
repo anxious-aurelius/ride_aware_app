@@ -34,7 +34,6 @@ async def create_history_entry(
     end_time: str,
     threshold_snapshot: dict,
 ) -> None:
-    """Create an empty history record linked to a threshold."""
     doc = {
         "device_id": device_id,
         "threshold_id": threshold_id,
@@ -119,8 +118,6 @@ async def fetch_rides(device_id: str, last_days: int = 30):
         timezone_str = (doc.get("threshold") or {}).get("timezone")
 
         doc.pop("_id", None)
-
-        # Prefer snapshots strictly inside the window; if empty, fall back to all.
         try:
             history = await fetch_weather_history_window(
                 threshold_id=threshold_id,

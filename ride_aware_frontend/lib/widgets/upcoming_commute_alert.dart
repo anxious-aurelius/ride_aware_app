@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
 import '../viewmodels/upcoming_commute_view_model.dart';
 import '../utils/parsing.dart';
 import '../utils/i18n.dart';
@@ -38,8 +38,11 @@ class _StatusInfo {
 class UpcomingCommuteAlert extends StatefulWidget {
   final String feedbackSummary;
   final Future<void> Function()? onThresholdUpdated;
-  final Future<void> Function(String rideId, DateTime start,
-      Map<String, dynamic> threshold)? onRideStarted;
+  final Future<void> Function(
+      String rideId,
+      DateTime start,
+      Map<String, dynamic> threshold,
+      )? onRideStarted;
   final Future<void> Function(
       String rideId,
       DateTime start,
@@ -47,7 +50,8 @@ class UpcomingCommuteAlert extends StatefulWidget {
       String status,
       Map<String, dynamic> summary,
       Map<String, dynamic> threshold,
-      List<Map<String, dynamic>> weatherHistory)? onRideEnded;
+      List<Map<String, dynamic>> weatherHistory,
+      )? onRideEnded;
 
   const UpcomingCommuteAlert({
     super.key,
@@ -69,10 +73,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   final TextEditingController _windSpeedController = TextEditingController();
   final TextEditingController _rainIntensityController = TextEditingController();
   final TextEditingController _humidityController = TextEditingController();
-  final TextEditingController _minTemperatureController =
-  TextEditingController();
-  final TextEditingController _maxTemperatureController =
-  TextEditingController();
+  final TextEditingController _minTemperatureController = TextEditingController();
+  final TextEditingController _maxTemperatureController = TextEditingController();
 
   double _headwindSensitivity = 20.0;
   double _crosswindSensitivity = 15.0;
@@ -82,7 +84,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   bool _isSaving = false;
 
   // PRE-RIDE NOTIFICATION STATE
-  DateTime? _preRideAlertSentForDate; // midnight-normalized date we’ve alerted for
+  DateTime? _preRideAlertSentForDate;
 
   UserPreferences? _prefs;
 
@@ -94,23 +96,17 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   @override
   void initState() {
     super.initState();
-    if (kDebugMode) {
-      print('📋 UpcomingCommuteAlert initialized');
-    }
+    if (kDebugMode) debugPrint('📋 UpcomingCommuteAlert initialized');
     _vm.addListener(_onUpdate);
     _vm.load();
     _loadPrefs();
   }
 
-  void _onUpdate() {
-    setState(() {});
-  }
+  void _onUpdate() => setState(() {});
 
   Future<void> _loadPrefs() async {
     final prefs = await _preferencesService.loadPreferences();
-    setState(() {
-      _prefs = prefs;
-    });
+    setState(() => _prefs = prefs);
   }
 
   /// Called by Dashboard every ~20s.
@@ -122,31 +118,26 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     final now = DateTime.now();
     final startTod = _prefs!.commuteWindows.startLocal;
 
-    // Determine the next ride's start (today if still upcoming, else tomorrow)
-    DateTime rideStart = DateTime(
-        now.year, now.month, now.day, startTod.hour, startTod.minute);
+    DateTime rideStart =
+    DateTime(now.year, now.month, now.day, startTod.hour, startTod.minute);
     if (now.isAfter(rideStart)) {
       final d = now.add(const Duration(days: 1));
-      rideStart =
-          DateTime(d.year, d.month, d.day, startTod.hour, startTod.minute);
+      rideStart = DateTime(d.year, d.month, d.day, startTod.hour, startTod.minute);
     }
 
-    // Has an alert already been sent for that ride day?
     final rideDayKey = DateTime(rideStart.year, rideStart.month, rideStart.day);
     if (_preRideAlertSentForDate != null &&
         _preRideAlertSentForDate!.year == rideDayKey.year &&
         _preRideAlertSentForDate!.month == rideDayKey.month &&
         _preRideAlertSentForDate!.day == rideDayKey.day) {
-      return; // already alerted for this ride day
+      return;
     }
 
     final windowStart = rideStart.subtract(const Duration(hours: 3));
 
-    // Only alert inside the 3-hour window (and before the ride actually starts)
     if (now.isAfter(windowStart) && now.isBefore(rideStart)) {
       final r = _vm.result!;
-      final hasProblems =
-          r.status != 'ok' || r.issues.isNotEmpty || r.borderline.isNotEmpty;
+      final hasProblems = r.status != 'ok' || r.issues.isNotEmpty || r.borderline.isNotEmpty;
       final parts = <String>[...r.issues, ...r.borderline];
 
       final message = hasProblems
@@ -168,14 +159,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
-  void refreshForecast() {
-    _vm.load();
-  }
+  void refreshForecast() => _vm.load();
 
-  /// Public: allows Dashboard bottom bar “Weather” button to pop the dialog.
-  void openHourlyForecast() {
-    _showHourlyForecastDialog();
-  }
+  void openHourlyForecast() => _showHourlyForecastDialog();
 
   @override
   void dispose() {
@@ -192,15 +178,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (_vm.needsCommuteTime) {
-      return _buildSetTimeCard(theme);
-    }
-    if (_vm.isLoading) {
-      return _buildLoadingCard(theme);
-    }
-    if (_vm.error != null) {
-      return _buildErrorCard(theme);
-    }
+    if (_vm.needsCommuteTime) return _buildSetTimeCard(theme);
+    if (_vm.isLoading) return _buildLoadingCard(theme);
+    if (_vm.error != null) return _buildErrorCard(theme);
 
     final result = _vm.result!;
     final limits = result.limits;
@@ -210,19 +190,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     if (_prefs != null) {
       final now = DateTime.now();
       final start = _prefs!.commuteWindows.startLocal;
-      final todayStartTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        start.hour,
-        start.minute,
-      );
+      final todayStartTime =
+      DateTime(now.year, now.month, now.day, start.hour, start.minute);
       showPostCommuteCard = now.isAfter(todayStartTime);
     }
 
     final cs = theme.colorScheme;
 
-    // Neutral main card (no green fills)
     final mainCard = Card(
       margin: const EdgeInsets.all(16),
       elevation: 4,
@@ -233,10 +207,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              cs.surface,
-              cs.surface.withOpacity(0.92),
-            ],
+            colors: [cs.surface, cs.surface.withOpacity(0.92)],
           ),
         ),
         child: Column(
@@ -248,8 +219,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
               _buildIssuesSection(result, status.color, theme),
             if (showPostCommuteCard) ...[
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -311,13 +281,14 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     return Column(children: cards);
   }
 
-  // ---------- Header (neutral, colored icon/dot only) ----------
+  // ---------- Header (stable & readable) ----------
   Widget _buildStatusHeader(
       ThemeData theme,
       _StatusInfo status,
       CommuteAlertResult result,
       ) {
     final cs = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -328,7 +299,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Row 1: icon + title (title stays on one line)
           Row(
             children: [
               Container(
@@ -336,63 +309,95 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 decoration: BoxDecoration(
                   color: cs.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border:
-                  Border.all(color: cs.outlineVariant.withOpacity(0.35)),
+                  border: Border.all(color: cs.outlineVariant.withOpacity(0.35)),
                 ),
-                child:
-                Icon(Icons.directions_bike, size: 28, color: cs.onSurface),
+                child: Icon(Icons.directions_bike, size: 28, color: cs.onSurface),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   t('Upcoming Commute'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: cs.onSurface,
                   ),
                 ),
               ),
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: status.color.withOpacity(0.35)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(_statusIconFor(status.color),
-                        color: status.color, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      t(status.label),
-                      style: TextStyle(
-                        color: status.color,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              const SizedBox(width: 56),
-              Icon(Icons.schedule, size: 16, color: cs.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Text(
-                _formatDateTime(result.time),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
+          // Row 2: chips wrapped (status + time) — never truncates content
+          Padding(
+            padding: const EdgeInsets.only(left: 56), // align under title
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                _buildStatusPill(theme, status),
+                _buildTimeChip(theme, result.time),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Animated status pill (full text shown)
+  Widget _buildStatusPill(ThemeData theme, _StatusInfo status) {
+    final cs = theme.colorScheme;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 160),
+      child: Container(
+        key: ValueKey(status.label),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: status.color.withOpacity(0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_statusIconFor(status.color), color: status.color, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              t(status.label),
+              style: TextStyle(
+                color: status.color,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Time “chip” (always shows full day & time)
+  Widget _buildTimeChip(ThemeData theme, DateTime time) {
+    final cs = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.schedule, size: 16, color: cs.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Text(
+            _formatDateTime(time),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -430,15 +435,14 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       tempIcon = Icons.thermostat;
       tempColor = Colors.green;
     }
-    final tempDesc =
-        '${minTemp.toStringAsFixed(0)}°C - ${maxTemp.toStringAsFixed(0)}°C';
+    final tempDesc = '${minTemp.toStringAsFixed(0)}°C - ${maxTemp.toStringAsFixed(0)}°C';
     final tempSubDesc =
         'Your range: ${limits.minTemperature}°C - ${limits.maxTemperature}°C';
 
     // Wind speed
     final windSpeed = parseDouble(result.summary['max_wind_speed']) * 3.6;
     final windLimit = limits.maxWindSpeed * 3.6;
-    final windColor = _levelColor(windSpeed, windLimit); // <= thresholding
+    final windColor = _levelColor(windSpeed, windLimit);
     final windIcon = windColor == Colors.green
         ? Icons.check_circle_outline
         : windColor == Colors.amber
@@ -489,16 +493,14 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           ),
           const SizedBox(height: 16),
           _buildEnhancedWeatherGrid([
+            _WeatherMetric(tempIcon, tempCaption, tempDesc, tempSubDesc, tempColor),
+            _WeatherMetric(windIcon, 'Wind Speed', windDesc, windSubDesc, windColor),
+            _WeatherMetric(Icons.explore, 'Wind Direction', windDirDesc, windDirSubDesc,
+                windDirColor),
             _WeatherMetric(
-                tempIcon, tempCaption, tempDesc, tempSubDesc, tempColor),
+                Icons.umbrella, 'Precipitation', rainDesc, rainSubDesc, rainColor),
             _WeatherMetric(
-                windIcon, 'Wind Speed', windDesc, windSubDesc, windColor),
-            _WeatherMetric(Icons.explore, 'Wind Direction', windDirDesc,
-                windDirSubDesc, windDirColor),
-            _WeatherMetric(Icons.umbrella, 'Precipitation', rainDesc,
-                rainSubDesc, rainColor),
-            _WeatherMetric(Icons.opacity, 'Humidity', humidityDesc,
-                humiditySubDesc, humidityColor),
+                Icons.opacity, 'Humidity', humidityDesc, humiditySubDesc, humidityColor),
           ], theme),
         ],
       ),
@@ -525,9 +527,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => WindMapScreen(
-                          routePoints: routePoints,
-                        ),
+                        builder: (context) => WindMapScreen(routePoints: routePoints),
                       ),
                     );
                   }
@@ -549,7 +549,6 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     );
   }
 
-  // Neutral, thin border, colored dot + icon; equal card heights
   Widget _buildEnhancedWeatherCard(
       _WeatherMetric metric,
       ThemeData theme, {
@@ -560,14 +559,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     final card = Container(
       padding: const EdgeInsets.all(14),
       constraints: BoxConstraints(
-        minHeight: isFullWidth ? 100 : 132, // keep 4 metric cards same height
+        minHeight: isFullWidth ? 100 : 132,
       ),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-          (metric.color == Colors.green ? cs.outlineVariant : metric.color)
+          color: (metric.color == Colors.green ? cs.outlineVariant : metric.color)
               .withOpacity(0.30),
         ),
         boxShadow: [
@@ -583,12 +581,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         children: [
           Row(
             children: [
-              // colored dot
               Container(
                 width: 10,
                 height: 10,
-                decoration:
-                BoxDecoration(color: metric.color, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: metric.color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Icon(
@@ -654,8 +650,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         break;
       case 'Wind Speed':
       case 'Wind Direction':
-        message =
-        'Wind conditions are too strong. Consider taking an alternative route.';
+        message = 'Wind conditions are too strong. Consider taking an alternative route.';
         break;
       case 'Rain':
       case 'Precipitation':
@@ -685,9 +680,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   Widget _buildAdjustThresholdsCTA(ThemeData theme) {
     return InkWell(
       onTap: () {
-        setState(() {
-          _showThresholdForm = true;
-        });
+        setState(() => _showThresholdForm = true);
         _initThresholdControllers();
       },
       child: Container(
@@ -734,8 +727,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                       onPressed: () async {
                         final picked = await showTimePicker(
                           context: context,
-                          initialTime: _routeStartTime ??
-                              const TimeOfDay(hour: 7, minute: 30),
+                          initialTime:
+                          _routeStartTime ?? const TimeOfDay(hour: 7, minute: 30),
                           helpText: 'Select Route Start Time (Local)',
                         );
                         if (picked != null) {
@@ -759,8 +752,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                       onPressed: () async {
                         final picked = await showTimePicker(
                           context: context,
-                          initialTime: _routeEndTime ??
-                              const TimeOfDay(hour: 17, minute: 30),
+                          initialTime:
+                          _routeEndTime ?? const TimeOfDay(hour: 17, minute: 30),
                           helpText: 'Select Route End Time (Local)',
                         );
                         if (picked != null) {
@@ -841,11 +834,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
               TextButton(
                 onPressed: _isSaving
                     ? null
-                    : () {
-                  setState(() {
-                    _showThresholdForm = false;
-                  });
-                },
+                    : () => setState(() => _showThresholdForm = false),
                 child: const Text('Cancel'),
               ),
               const SizedBox(width: 8),
@@ -874,10 +863,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }) {
     return TextFormField(
       controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(
-        decimal: true,
-        signed: true,
-      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^-?[0-9]*\.?[0-9]*')),
       ],
@@ -886,16 +872,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
         border: OutlineInputBorder(),
       ).copyWith(labelText: label),
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'This field is required';
-        }
+        if (value == null || value.isEmpty) return 'This field is required';
         final number = double.tryParse(value);
-        if (number == null) {
-          return 'Please enter a valid number';
-        }
-        if (number < min || number > max) {
-          return 'Value must be between $min and $max';
-        }
+        if (number == null) return 'Please enter a valid number';
+        if (number < min || number > max) return 'Value must be between $min and $max';
         if (controller == _minTemperatureController) {
           final maxTemp = double.tryParse(_maxTemperatureController.text);
           if (maxTemp != null && number > maxTemp) {
@@ -917,13 +897,10 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     final prefs = await _preferencesService.loadPreferences();
     setState(() {
       _windSpeedController.text = prefs.weatherLimits.maxWindSpeed.toString();
-      _rainIntensityController.text =
-          prefs.weatherLimits.maxRainIntensity.toString();
+      _rainIntensityController.text = prefs.weatherLimits.maxRainIntensity.toString();
       _humidityController.text = prefs.weatherLimits.maxHumidity.toString();
-      _minTemperatureController.text =
-          prefs.weatherLimits.minTemperature.toString();
-      _maxTemperatureController.text =
-          prefs.weatherLimits.maxTemperature.toString();
+      _minTemperatureController.text = prefs.weatherLimits.minTemperature.toString();
+      _maxTemperatureController.text = prefs.weatherLimits.maxTemperature.toString();
       _headwindSensitivity = prefs.weatherLimits.headwindSensitivity;
       _crosswindSensitivity = prefs.weatherLimits.crosswindSensitivity;
       _routeStartTime = prefs.commuteWindows.startLocal;
@@ -932,13 +909,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   Future<void> _saveThresholds() async {
-    setState(() {
-      _isSaving = true;
-    });
+    setState(() => _isSaving = true);
     if (!_thresholdFormKey.currentState!.validate()) {
-      setState(() {
-        _isSaving = false;
-      });
+      setState(() => _isSaving = false);
       return;
     }
     try {
@@ -963,16 +936,13 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
       );
 
       final feedbackGiven = await _preferencesService.isEndFeedbackGivenToday();
-      final String? oldThresholdId =
-      await _preferencesService.getCurrentThresholdId();
-      final String? newThresholdId =
-      await _apiService.submitThresholds(updatedPrefs);
+      final String? oldThresholdId = await _preferencesService.getCurrentThresholdId();
+      final String? newThresholdId = await _apiService.submitThresholds(updatedPrefs);
       await _preferencesService.savePreferencesWithDeviceId(updatedPrefs);
       await _preferencesService.clearEndFeedbackGiven();
       if (newThresholdId != null && !feedbackGiven && oldThresholdId != null) {
         await _preferencesService.setPendingFeedback(DateTime.now());
-        await _preferencesService
-            .setPendingFeedbackThresholdId(oldThresholdId);
+        await _preferencesService.setPendingFeedbackThresholdId(oldThresholdId);
       } else {
         await _preferencesService.setPendingFeedback(null);
         await _preferencesService.setPendingFeedbackThresholdId(null);
@@ -998,13 +968,11 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
           SnackBar(content: Text('Failed to update thresholds: $e')),
         );
       }
-      setState(() {
-        _isSaving = false;
-      });
+      setState(() => _isSaving = false);
     }
   }
 
-  // Neutral issues section with tinted border (History look)
+  // Neutral issues section with tinted border
   Widget _buildIssuesSection(
       CommuteAlertResult result,
       Color color,
@@ -1083,8 +1051,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             icon: const Icon(Icons.refresh, size: 18),
             label: Text(t('Refresh Forecast')),
             style: ElevatedButton.styleFrom(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1124,9 +1091,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 final f = forecasts[index];
                 DateTime? time;
                 final timeStr = f['time']?.toString();
-                if (timeStr != null) {
-                  time = DateTime.tryParse(timeStr);
-                }
+                if (timeStr != null) time = DateTime.tryParse(timeStr);
                 final label = time != null
                     ? '${time.hour.toString().padLeft(2, '0')}:00'
                     : 'Hour ${index + 1}';
@@ -1235,7 +1200,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 color: Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
-              child: Icon(Icons.error_outline, color: Colors.red, size: 32),
+              child: const Icon(Icons.error_outline, color: Colors.red, size: 32),
             ),
             const SizedBox(height: 16),
             Text(
@@ -1257,7 +1222,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
             ElevatedButton.icon(
               onPressed: _vm.load,
               icon: const Icon(Icons.refresh),
-              label: Text('Try Again'),
+              label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
@@ -1298,11 +1263,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
                 color: theme.colorScheme.secondary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
-              child: Icon(
-                Icons.schedule,
-                color: theme.colorScheme.secondary,
-                size: 32,
-              ),
+              child: Icon(Icons.schedule,
+                  color: theme.colorScheme.secondary, size: 32),
             ),
             const SizedBox(height: 16),
             Text(
@@ -1338,10 +1300,8 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: const TimeOfDay(hour: 8, minute: 0),
-    );
+    final picked =
+    await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 8, minute: 0));
     if (picked != null) {
       await _vm.setCommuteTime(picked);
     }
@@ -1367,11 +1327,7 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
   _StatusInfo _statusInfo(String status) {
     switch (status) {
       case 'alert':
-        return const _StatusInfo(
-          Colors.red,
-          Icons.close,
-          'Unfavourable Conditions',
-        );
+        return const _StatusInfo(Colors.red, Icons.close, 'Unfavourable Conditions');
       case 'warning':
         return const _StatusInfo(Colors.amber, Icons.warning, 'Caution');
       default:
@@ -1379,10 +1335,9 @@ class UpcomingCommuteAlertState extends State<UpcomingCommuteAlert> {
     }
   }
 
-  // Threshold coloring: green (safe), yellow (equal/near limit), red (clearly over)
   Color _levelColor(double value, double limit) {
-    if (value > limit * 1.05) return Colors.red; // crossed by >5%
-    if (value >= limit * 0.98) return Colors.amber; // equal or just around
+    if (value > limit * 1.05) return Colors.red;
+    if (value >= limit * 0.98) return Colors.amber;
     return Colors.green;
   }
 
