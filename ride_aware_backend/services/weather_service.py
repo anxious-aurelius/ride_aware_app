@@ -95,7 +95,7 @@ def get_next_hours_forecast(lat: float, lon: float, hours: int = 6):
     for item in forecast_list:
         rain_data = item.get("rain")
         if isinstance(rain_data, dict):
-            rain_data = rain_data.get("1h") or rain_data.get("1h")
+            rain_data = rain_data.get("3h") or rain_data.get("1h")
         results.append(
             {
                 "time": datetime.fromtimestamp(item.get("dt", 0)).isoformat(),
