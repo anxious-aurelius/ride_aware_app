@@ -12,7 +12,8 @@ import 'device_id_service.dart';
 import 'preferences_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:8889';
+  // static const String baseUrl = 'http://10.0.2.2:8889';
+  static const String baseUrl = 'http://81.17.60.64:8888';
 
   final DeviceIdService _deviceIdService = DeviceIdService();
   final PreferencesService _preferencesService = PreferencesService();
@@ -21,7 +22,9 @@ class ApiService {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
-        throw Exception('Participant ID not available. Cannot submit thresholds.');
+        throw Exception(
+          'Participant ID not available. Cannot submit thresholds.',
+        );
       }
 
       if (!preferences.isValid) {
@@ -32,7 +35,10 @@ class ApiService {
       }
 
       final now = DateTime.now();
-      final scheduledStart = pickScheduledStart(now, preferences.commuteWindows.startLocal);
+      final scheduledStart = pickScheduledStart(
+        now,
+        preferences.commuteWindows.startLocal,
+      );
 
       final body = {
         'device_id': deviceId,
@@ -86,7 +92,8 @@ class ApiService {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
-        if (kDebugMode) print('️ No participant ID, skipping preferences fetch.');
+        if (kDebugMode)
+          print('️ No participant ID, skipping preferences fetch.');
         return null;
       }
 
@@ -163,7 +170,9 @@ class ApiService {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
-        throw Exception('Participant ID not available. Cannot submit FCM token.');
+        throw Exception(
+          'Participant ID not available. Cannot submit FCM token.',
+        );
       }
 
       final body = {'device_id': deviceId, 'fcm_token': fcmToken};
@@ -171,7 +180,7 @@ class ApiService {
       if (kDebugMode) {
         final masked = {
           'device_id': deviceId,
-          'fcm_token': '${fcmToken.substring(0, 20)}...'
+          'fcm_token': '${fcmToken.substring(0, 20)}...',
         };
         print('   POST $baseUrl/fcm/register');
         print('   headers: ${await _getHeaders()}');
@@ -203,7 +212,8 @@ class ApiService {
   // ---------------------------------------------------------------------------
   Future<void> submitFeedback(Map<String, dynamic> feedback) async {
     try {
-      final pendingId = await _preferencesService.getPendingFeedbackThresholdId();
+      final pendingId = await _preferencesService
+          .getPendingFeedbackThresholdId();
       final currentId = await _preferencesService.getCurrentThresholdId();
       final thresholdId = pendingId ?? currentId;
       if (thresholdId == null) {
@@ -239,10 +249,12 @@ class ApiService {
         throw Exception('Participant ID not available. Cannot fetch history.');
       }
 
-      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
-        'device_id': deviceId,
-        'lastDays': lastDays.toString(),
-      });
+      final uri = Uri.parse('$baseUrl/rideHistory').replace(
+        queryParameters: {
+          'device_id': deviceId,
+          'lastDays': lastDays.toString(),
+        },
+      );
 
       final res = await http.get(uri, headers: await _getHeaders());
 
@@ -256,7 +268,9 @@ class ApiService {
       }
 
       final data = jsonDecode(res.body) as List;
-      return data.map((e) => RideHistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
+      return data
+          .map((e) => RideHistoryEntry.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       if (kDebugMode) print(' fetchRideHistory error: $e');
       throw Exception('Network error: $e');
@@ -266,17 +280,21 @@ class ApiService {
   // ---------------------------------------------------------------------------
   // Ride history
   // ---------------------------------------------------------------------------
-  Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({int lastDays = 30}) async {
+  Future<List<Map<String, dynamic>>> fetchRideHistoryRaw({
+    int lastDays = 30,
+  }) async {
     try {
       final deviceId = await _deviceIdService.getParticipantIdHash();
       if (deviceId == null) {
         throw Exception('Participant ID not available. Cannot fetch history.');
       }
 
-      final uri = Uri.parse('$baseUrl/rideHistory').replace(queryParameters: {
-        'device_id': deviceId,
-        'lastDays': lastDays.toString(),
-      });
+      final uri = Uri.parse('$baseUrl/rideHistory').replace(
+        queryParameters: {
+          'device_id': deviceId,
+          'lastDays': lastDays.toString(),
+        },
+      );
 
       final res = await http.get(uri, headers: await _getHeaders());
 
@@ -286,13 +304,17 @@ class ApiService {
       }
 
       if (res.statusCode != 200) {
-        throw Exception('Failed to load ride history: ${res.statusCode} ${res.body}');
+        throw Exception(
+          'Failed to load ride history: ${res.statusCode} ${res.body}',
+        );
       }
 
       final decoded = jsonDecode(res.body);
       if (decoded is! List) return const [];
 
-      return decoded.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
+      return decoded
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
     } catch (e) {
       if (kDebugMode) print(' fetchRideHistoryRaw error: $e');
       rethrow;
@@ -378,16 +400,25 @@ class ApiService {
   Future<http.Response> _getWithDeviceId(String endpoint) async {
     final deviceId = await _deviceIdService.getParticipantIdHash();
     if (deviceId == null) {
-      throw Exception('Participant ID not available. Cannot perform GET request.');
+      throw Exception(
+        'Participant ID not available. Cannot perform GET request.',
+      );
     }
-    final uri = Uri.parse('$baseUrl$endpoint').replace(queryParameters: {'device_id': deviceId});
+    final uri = Uri.parse(
+      '$baseUrl$endpoint',
+    ).replace(queryParameters: {'device_id': deviceId});
     return http.get(uri, headers: await _getHeaders());
   }
 
-  Future<http.Response> _postWithDeviceId(String endpoint, Map<String, dynamic> body) async {
+  Future<http.Response> _postWithDeviceId(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     final deviceId = await _deviceIdService.getParticipantIdHash();
     if (deviceId == null) {
-      throw Exception('Participant ID not available. Cannot perform POST request.');
+      throw Exception(
+        'Participant ID not available. Cannot perform POST request.',
+      );
     }
     final requestBody = {...body, 'device_id': deviceId};
     return http.post(
